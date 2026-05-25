@@ -1,0 +1,17 @@
+# Exclude version control files
+.git
+.github
+.gitignore
+
+# Exclude local build artifacts and environment files
+.env
+*.exe
+*.log
+*.stackdump
+task-manager-go
+node_modules
+
+# Exclude temp files and OS specific metadata
+.DS_Store
+Thumbs.db
+.gemini

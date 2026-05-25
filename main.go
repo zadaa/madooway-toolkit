@@ -1,0 +1,71 @@
+package main
+
+import (
+	"fmt"
+	"log"
+	"net/http"
+
+	"task-manager-go/config"
+	"task-manager-go/db"
+	"task-manager-go/handlers"
+	"task-manager-go/middleware"
+)
+
+func main() {
+	// 1. Load configuration
+	config.LoadConfig()
+
+	// 2. Initialize Database and Auto-migrations
+	db.InitDB()
+	defer db.DB.Close()
+
+	// 3. Set up Router
+	mux := http.NewServeMux()
+
+	// Serve Static Files
+	fs := http.FileServer(http.Dir("static"))
+	mux.Handle("GET /static/", http.StripPrefix("/static/", fs))
+
+	// Guest Routes (Login & Register)
+	mux.HandleFunc("GET /login", middleware.GuestOnly(handlers.ShowLogin))
+	mux.HandleFunc("POST /login", middleware.GuestOnly(handlers.HandleLogin))
+	mux.HandleFunc("GET /register", middleware.GuestOnly(handlers.ShowRegister))
+	mux.HandleFunc("POST /register", middleware.GuestOnly(handlers.HandleRegister))
+
+	// Authenticated Routes
+	mux.HandleFunc("GET /logout", handlers.HandleLogout)
+	mux.HandleFunc("GET /dashboard", middleware.AuthRequired(handlers.ShowDashboard))
+	
+	mux.HandleFunc("GET /tasks", middleware.AuthRequired(handlers.ListTasks))
+	mux.HandleFunc("POST /tasks/create", middleware.AuthRequired(handlers.CreateTask))
+	mux.HandleFunc("POST /tasks/update", middleware.AuthRequired(handlers.UpdateTask))
+	mux.HandleFunc("POST /tasks/delete", middleware.AuthRequired(handlers.DeleteTask))
+
+	mux.HandleFunc("GET /clients", middleware.AuthRequired(handlers.ListClients))
+	mux.HandleFunc("POST /clients/create", middleware.AuthRequired(handlers.CreateClient))
+	mux.HandleFunc("POST /clients/update", middleware.AuthRequired(handlers.UpdateClient))
+	mux.HandleFunc("POST /clients/delete", middleware.AuthRequired(handlers.DeleteClient))
+
+	mux.HandleFunc("GET /trainings", middleware.AuthRequired(handlers.ListTrainings))
+	mux.HandleFunc("POST /trainings/create", middleware.AuthRequired(handlers.CreateTraining))
+	mux.HandleFunc("POST /trainings/update", middleware.AuthRequired(handlers.UpdateTraining))
+	mux.HandleFunc("POST /trainings/delete", middleware.AuthRequired(handlers.DeleteTraining))
+
+	// Root Redirect Handler
+	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/" {
+			http.NotFound(w, r)
+			return
+		}
+		http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+	})
+
+	// 4. Start HTTP Server
+	addr := fmt.Sprintf(":%s", config.AppConfig.Port)
+	log.Printf("Server starting on http://localhost%s\n", addr)
+	
+	err := http.ListenAndServe(addr, mux)
+	if err != nil {
+		log.Fatalf("Server failed to start: %v", err)
+	}
+}

@@ -1,0 +1,677 @@
+{{define "content"}}
+<!-- Include Select2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+<style>
+
+
+/* Table Layout styling */
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    box-shadow: var(--shadow-soft);
+    backdrop-filter: blur(16px);
+    margin-top: 10px;
+}
+
+.premium-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 13.5px;
+}
+
+.premium-table th {
+    background: rgba(255, 255, 255, 0.02);
+    padding: 16px 20px;
+    font-weight: 600;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-color);
+    font-family: 'Outfit', sans-serif;
+    letter-spacing: 0.5px;
+}
+
+.premium-table td {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    vertical-align: middle;
+}
+
+.premium-table tbody tr {
+    transition: var(--transition-smooth);
+}
+
+.premium-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.premium-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Actions in Table */
+.table-actions {
+    display: flex;
+    gap: 8px;
+}
+
+/* Filter Card layout */
+.filter-row-container {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 16px 20px;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow-soft);
+}
+
+.filter-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+}
+
+.filter-grid > * {
+    flex: 1 1 160px;
+}
+
+.filter-grid .search-group {
+    flex: 2 1 250px;
+}
+
+.filter-grid .date-group {
+    flex: 1.2 1 180px;
+}
+
+.filter-grid .btn-reset {
+    flex: 0 0 38px;
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.filter-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.filter-input-wrapper i {
+    position: absolute;
+    left: 14px;
+    color: var(--text-muted);
+}
+
+.filter-input-wrapper input {
+    width: 100%;
+    padding: 10px 14px 10px 38px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    color: var(--text-primary);
+    font-size: 13px;
+    outline: none;
+    transition: var(--transition-smooth);
+}
+
+.filter-input-wrapper input:focus {
+    border-color: var(--color-primary);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.filter-select-wrapper select {
+    width: 100%;
+    padding: 10px 14px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    color: var(--text-primary);
+    font-size: 13px;
+    outline: none;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+}
+
+.filter-select-wrapper select:focus {
+    border-color: var(--color-primary);
+}
+
+.filter-grid input[type="date"] {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    color: var(--text-primary);
+    outline: none;
+    transition: var(--transition-smooth);
+    width: 100%;
+}
+
+.filter-grid input[type="date"]:focus {
+    border-color: var(--color-primary);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.btn-export {
+    background: rgba(46, 196, 182, 0.15);
+    color: var(--status-completed);
+    border: 1px solid rgba(46, 196, 182, 0.2);
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-weight: 500;
+    font-size: 13px;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-export:hover {
+    background: var(--status-completed);
+    color: #060910;
+}
+</style>
+
+<div class="tasks-page-header">
+    <div>
+        <p class="section-desc">Atur dan pantau agenda pelatihan / training yang dijadwalkan ke masing-masing klien.</p>
+    </div>
+    
+    <div style="display: flex; gap: 12px;">
+        <button onclick="exportToCSV()" class="btn-export">
+            <i class="fa-solid fa-file-csv"></i>
+            <span>Ekspor CSV</span>
+        </button>
+        <button onclick="openAddTrainingModal()" class="btn btn-primary">
+            <i class="fa-solid fa-plus"></i>
+            <span>Jadwal Baru</span>
+        </button>
+    </div>
+</div>
+
+<!-- Filter Section -->
+<div class="filter-row-container">
+    <div class="filter-grid">
+        <div class="filter-input-wrapper search-group">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="searchFilter" placeholder="Cari nama agenda, lokasi, atau trainer..." oninput="applyFilters()">
+        </div>
+        
+        <div class="filter-select-wrapper">
+            <select id="clientFilter" onchange="applyFilters()">
+                <option value="">Semua Klien</option>
+                {{range .Data.Clients}}
+                <option value="{{.Name}}">{{.Name}}</option>
+                {{end}}
+            </select>
+        </div>
+        
+        <div class="filter-select-wrapper">
+            <select id="typeFilter" onchange="applyFilters()">
+                <option value="">Semua Tipe</option>
+                <option value="Online">Online</option>
+                <option value="Offline">Offline</option>
+            </select>
+        </div>
+        
+        <div class="filter-select-wrapper">
+            <select id="statusFilter" onchange="applyFilters()">
+                <option value="">Semua Status</option>
+                <option value="Scheduled">Scheduled</option>
+                <option value="Completed">Completed</option>
+                <option value="Cancelled">Cancelled</option>
+            </select>
+        </div>
+
+        <div class="filter-input-wrapper date-group" style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 11px; color: var(--text-secondary); white-space: nowrap; font-weight: 500;">Dari:</span>
+            <input type="date" id="startDateFilter" onchange="applyFilters()" style="padding: 10px 12px; font-size: 12px;">
+        </div>
+        
+        <div class="filter-input-wrapper date-group" style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 11px; color: var(--text-secondary); white-space: nowrap; font-weight: 500;">S/D:</span>
+            <input type="date" id="endDateFilter" onchange="applyFilters()" style="padding: 10px 12px; font-size: 12px;">
+        </div>
+        
+        <button onclick="resetFilters()" class="btn-reset" title="Hapus Filter">
+            <i class="fa-solid fa-rotate-left"></i>
+        </button>
+    </div>
+</div>
+
+<!-- Table Output Container -->
+{{if not .Data.Schedules}}
+<div class="empty-state animate-fade-in" id="emptyStateNoData">
+    <i class="fa-solid fa-calendar-days empty-icon"></i>
+    <h3>Belum Ada Jadwal</h3>
+    <p>Belum ada agenda training yang dijadwalkan. Buat jadwal baru untuk memulai onboarding atau training klien Anda!</p>
+    <button onclick="openAddTrainingModal()" class="btn btn-primary btn-sm">Buat Jadwal Pertama</button>
+</div>
+{{else}}
+<div class="table-responsive" id="tableResponsiveContainer">
+    <table class="premium-table" id="trainingTable">
+        <thead>
+            <tr>
+                <th style="width: 50px;">No.</th>
+                <th>Nama Pelatihan / Agenda</th>
+                <th>Klien Sasaran</th>
+                <th>Tanggal & Waktu</th>
+                <th>Tipe</th>
+                <th>Lokasi</th>
+                <th>Trainer</th>
+                <th>Status</th>
+                <th style="width: 100px; text-align: center;">Aksi</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{range .Data.Schedules}}
+            <tr data-id="{{.ID}}"
+                data-client-id="{{.ClientID}}"
+                data-client-name="{{.ClientName}}"
+                data-title="{{.Title}}"
+                data-description="{{.Description}}"
+                data-date="{{.FormattedTrainingDate}}"
+                data-date-iso="{{.FormattedDateTimeLocal}}"
+                data-type="{{.TrainingType}}"
+                data-location="{{.Location}}"
+                data-trainer="{{.Trainer}}"
+                data-status="{{.Status}}">
+                
+                <td class="row-index" style="font-weight: 600; color: var(--text-muted);"></td>
+                
+                <td>
+                    <div style="font-weight: 600; color: var(--text-primary);">{{.Title}}</div>
+                    {{if .Description}}
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px; max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{.Description}}">
+                        {{.Description}}
+                    </div>
+                    {{end}}
+                </td>
+                
+                <td>
+                    <span style="font-weight: 500;">{{.ClientName}}</span>
+                </td>
+                
+                <td>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <i class="fa-solid fa-calendar-check" style="color: var(--color-primary);"></i>
+                        <span>{{.FormattedTrainingDate}}</span>
+                    </div>
+                </td>
+                
+                <td>
+                    <span class="badge" style="background: {{if eq .TrainingType "Online"}}rgba(155, 93, 229, 0.12){{else}}rgba(46, 196, 182, 0.12){{end}}; color: {{if eq .TrainingType "Online"}}var(--color-purple){{else}}var(--status-completed){{end}}; border: 1px solid {{if eq .TrainingType "Online"}}rgba(155, 93, 229, 0.15){{else}}rgba(46, 196, 182, 0.15){{end}};">
+                        <i class="fa-solid {{if eq .TrainingType "Online"}}fa-globe{{else}}fa-map-pin{{end}}"></i> &nbsp; {{.TrainingType}}
+                    </span>
+                </td>
+                
+                <td>
+                    <div>
+                        <i class="fa-solid fa-location-dot" style="color: var(--status-pending); margin-right: 4px;"></i>
+                        {{if .Location}}{{.Location}}{{else}}<span style="color: var(--text-muted); font-style: italic;">Online</span>{{end}}
+                    </div>
+                </td>
+                
+                <td>
+                    <div>
+                        <i class="fa-solid fa-chalkboard-user" style="color: var(--color-purple); margin-right: 4px;"></i>
+                        {{if .Trainer}}{{.Trainer}}{{else}}<span style="color: var(--text-muted); font-style: italic;">-</span>{{end}}
+                    </div>
+                </td>
+                
+                <td>
+                    <span class="badge badge-status status-{{if eq .Status "Scheduled"}}In Progress{{else if eq .Status "Completed"}}Completed{{else}}Pending{{end}}">{{.Status}}</span>
+                </td>
+                
+                <td>
+                    <div class="table-actions" style="justify-content: center;">
+                        <button class="btn-action-edit" title="Edit Jadwal"
+                                data-id="{{.ID}}"
+                                data-client-id="{{.ClientID}}"
+                                data-title="{{.Title}}"
+                                data-description="{{.Description}}"
+                                data-training-date="{{.FormattedDateTimeLocal}}"
+                                data-training-type="{{.TrainingType}}"
+                                data-status="{{.Status}}"
+                                data-location="{{.Location}}"
+                                data-trainer="{{.Trainer}}"
+                                onclick="openEditTrainingModal(this)">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </button>
+                        
+                        <form action="/trainings/delete" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus jadwal training ini?')" style="display:inline;">
+                            <input type="hidden" name="id" value="{{.ID}}">
+                            <button type="submit" class="btn-action-delete" title="Hapus Jadwal">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
+</div>
+
+<!-- Empty state overlay inside filter (shown when visibleCount === 0) -->
+<div class="empty-state animate-fade-in" id="tableEmptyState" style="display: none;">
+    <i class="fa-solid fa-magnifying-glass empty-icon"></i>
+    <h3>Tidak Ada Jadwal Ditemukan</h3>
+    <p>Tidak ada jadwal training yang cocok dengan filter pencarian Anda. Silakan ubah filter atau kata kunci Anda.</p>
+    <button onclick="resetFilters()" class="btn btn-secondary btn-sm">Reset Filter</button>
+</div>
+{{end}}
+
+<!-- Unified Training Modal (Create & Edit) -->
+<div id="trainingModal" class="modal">
+    <div class="modal-content animate-slide-in" style="max-width: 650px;">
+        <div class="modal-header">
+            <h3 id="modalTitle">Tambah Jadwal Baru</h3>
+            <span class="close-modal" onclick="closeTrainingModal()">&times;</span>
+        </div>
+        <form id="trainingForm" action="/trainings/create" method="POST">
+            <input type="hidden" id="trainingID" name="id">
+            
+            <div class="form-group">
+                <label for="trainingClientID">Klien Sasaran</label>
+                <select id="trainingClientID" name="client_id" required style="width: 100%;">
+                    <option value="">-- Pilih Klien --</option>
+                    {{range .Data.Clients}}
+                    <option value="{{.ID}}">
+                        {{.Name}} {{if .ShortName}}({{.ShortName}}){{end}} - {{.PricePackage}} {{if .PicName}}(PIC: {{.PicName}}){{end}}
+                    </option>
+                    {{end}}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="trainingTitle">Nama Pelatihan / Agenda</label>
+                <input type="text" id="trainingTitle" name="title" required placeholder="Contoh: Training Modul Akuntansi Dasar">
+            </div>
+
+            <div class="form-group">
+                <label for="trainingDescription">Deskripsi & Catatan</label>
+                <textarea id="trainingDescription" name="description" placeholder="Jelaskan agenda training..." style="min-height: 100px;"></textarea>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group col-half">
+                    <label for="trainingDate">Tanggal & Waktu</label>
+                    <input type="datetime-local" id="trainingDate" name="training_date" required>
+                </div>
+                
+                <div class="form-group col-half">
+                    <label for="trainingType">Tipe Pelatihan</label>
+                    <select id="trainingType" name="training_type">
+                        <option value="Online">Online</option>
+                        <option value="Offline">Offline</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group col-half">
+                    <label for="trainingTrainer">Trainer / Pengajar</label>
+                    <input type="text" id="trainingTrainer" name="trainer" placeholder="Contoh: Budi Santoso, Rina Wijaya, etc.">
+                </div>
+                
+                <div class="form-group col-half">
+                    <label for="trainingStatus">Status</label>
+                    <select id="trainingStatus" name="status">
+                        <option value="Scheduled">Scheduled</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Cancelled">Cancelled</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="trainingLocation">Lokasi Pelaksanaan</label>
+                <input type="text" id="trainingLocation" name="location" placeholder="Contoh: Kantor Klien, Zoom Meeting Link, etc.">
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeTrainingModal()">Batal</button>
+                <button type="submit" class="btn btn-primary">Simpan</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Include jQuery and Select2 JS -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+    $(document).ready(function() {
+        // Initialize Select2 with dropdownParent to avoid focus/overflow issues inside the modal
+        $('#trainingClientID').select2({
+            placeholder: "-- Pilih Klien --",
+            allowClear: true,
+            width: '100%',
+            dropdownParent: $('#trainingModal')
+        });
+
+        // Initialize row numbering and apply filters
+        applyFilters();
+    });
+
+    function applyFilters() {
+        const searchFilterEl = document.getElementById('searchFilter');
+        const clientFilterEl = document.getElementById('clientFilter');
+        const typeFilterEl = document.getElementById('typeFilter');
+        const statusFilterEl = document.getElementById('statusFilter');
+        const startDateFilterEl = document.getElementById('startDateFilter');
+        const endDateFilterEl = document.getElementById('endDateFilter');
+
+        // Check if elements exist (e.g. if database is empty, elements might not be present)
+        if (!searchFilterEl) return;
+
+        const searchVal = searchFilterEl.value.toLowerCase().trim();
+        const clientVal = clientFilterEl.value;
+        const typeVal = typeFilterEl.value;
+        const statusVal = statusFilterEl.value;
+        const startDateVal = startDateFilterEl.value; // "YYYY-MM-DD"
+        const endDateVal = endDateFilterEl.value; // "YYYY-MM-DD"
+        
+        const rows = document.querySelectorAll('#trainingTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const title = row.getAttribute('data-title').toLowerCase();
+            const client = row.getAttribute('data-client-name');
+            const type = row.getAttribute('data-type');
+            const status = row.getAttribute('data-status');
+            const location = row.getAttribute('data-location').toLowerCase();
+            const trainer = row.getAttribute('data-trainer').toLowerCase();
+            
+            // Get date string (first 10 chars of date-iso: "YYYY-MM-DD")
+            const dateIso = row.getAttribute('data-date-iso') || "";
+            const rowDate = dateIso.split('T')[0];
+            
+            let match = true;
+            
+            // Search Filter (checks title, location, trainer)
+            if (searchVal !== '') {
+                if (!title.includes(searchVal) && !location.includes(searchVal) && !trainer.includes(searchVal)) {
+                    match = false;
+                }
+            }
+            
+            // Client Filter
+            if (clientVal !== '' && client !== clientVal) {
+                match = false;
+            }
+            
+            // Type Filter
+            if (typeVal !== '' && type !== typeVal) {
+                match = false;
+            }
+            
+            // Status Filter
+            if (statusVal !== '' && status !== statusVal) {
+                match = false;
+            }
+
+            // Date Period Filter (lexicographical comparison)
+            if (startDateVal !== '' && rowDate < startDateVal) {
+                match = false;
+            }
+            if (endDateVal !== '' && rowDate > endDateVal) {
+                match = false;
+            }
+            
+            if (match) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update indices for visible rows
+        let visibleIndex = 1;
+        rows.forEach(row => {
+            if (row.style.display !== 'none') {
+                row.querySelector('.row-index').textContent = visibleIndex;
+                visibleIndex++;
+            }
+        });
+        
+        // Handle empty states dynamically
+        const emptyState = document.getElementById('tableEmptyState');
+        const tableContainer = document.getElementById('tableResponsiveContainer');
+        
+        if (visibleCount === 0) {
+            if (emptyState) emptyState.style.display = 'flex';
+            if (tableContainer) tableContainer.style.display = 'none';
+        } else {
+            if (emptyState) emptyState.style.display = 'none';
+            if (tableContainer) tableContainer.style.display = 'block';
+        }
+    }
+
+    function resetFilters() {
+        document.getElementById('searchFilter').value = '';
+        document.getElementById('clientFilter').value = '';
+        document.getElementById('typeFilter').value = '';
+        document.getElementById('statusFilter').value = '';
+        document.getElementById('startDateFilter').value = '';
+        document.getElementById('endDateFilter').value = '';
+        
+        applyFilters();
+    }
+
+    function exportToCSV() {
+        const rows = document.querySelectorAll('#trainingTable tbody tr');
+        if (rows.length === 0) {
+            alert('Tidak ada data training untuk diekspor.');
+            return;
+        }
+
+        let csvContent = "\uFEFF"; // UTF-8 BOM for Excel compatibility
+        
+        // Header
+        csvContent += "No,Nama Pelatihan,Klien Sasaran,Tanggal & Waktu,Tipe,Lokasi,Trainer,Status\n";
+        
+        let index = 1;
+        rows.forEach(row => {
+            if (row.style.display !== 'none') {
+                const title = row.getAttribute('data-title') || '';
+                const client = row.getAttribute('data-client-name') || '';
+                const date = row.getAttribute('data-date') || '';
+                const type = row.getAttribute('data-type') || '';
+                const location = row.getAttribute('data-location') || '';
+                const trainer = row.getAttribute('data-trainer') || '';
+                const status = row.getAttribute('data-status') || '';
+                
+                // Sanitize fields (escape quotes, wrap in quotes if contains commas or quotes)
+                const sanitize = val => {
+                    let clean = val.replace(/"/g, '""');
+                    if (clean.includes(',') || clean.includes('\n') || clean.includes('"')) {
+                        clean = `"${clean}"`;
+                    }
+                    return clean;
+                };
+                
+                csvContent += `${index},${sanitize(title)},${sanitize(client)},${sanitize(date)},${sanitize(type)},${sanitize(location)},${sanitize(trainer)},${sanitize(status)}\n`;
+                index++;
+            }
+        });
+        
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", "jadwal_training_export.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    function openAddTrainingModal() {
+        document.getElementById('modalTitle').textContent = "Tambah Jadwal Baru";
+        document.getElementById('trainingForm').action = "/trainings/create";
+        document.getElementById('trainingID').value = "";
+        document.getElementById('trainingTitle').value = "";
+        document.getElementById('trainingDescription').value = "";
+        document.getElementById('trainingDate').value = "";
+        document.getElementById('trainingType').value = "Online";
+        document.getElementById('trainingStatus').value = "Scheduled";
+        document.getElementById('trainingLocation').value = "";
+        document.getElementById('trainingTrainer').value = "";
+        
+        // Reset Select2 value
+        $('#trainingClientID').val('').trigger('change');
+        
+        document.getElementById('trainingModal').style.display = 'flex';
+    }
+
+    function openEditTrainingModal(btn) {
+        document.getElementById('modalTitle').textContent = "Edit Jadwal Training";
+        document.getElementById('trainingForm').action = "/trainings/update";
+        
+        const id = btn.getAttribute('data-id');
+        const clientId = btn.getAttribute('data-client-id');
+        const title = btn.getAttribute('data-title');
+        const description = btn.getAttribute('data-description');
+        const trainingDate = btn.getAttribute('data-training-date');
+        const trainingType = btn.getAttribute('data-training-type');
+        const status = btn.getAttribute('data-status');
+        const location = btn.getAttribute('data-location');
+        const trainer = btn.getAttribute('data-trainer');
+        
+        document.getElementById('trainingID').value = id;
+        document.getElementById('trainingTitle').value = title;
+        document.getElementById('trainingDescription').value = description;
+        document.getElementById('trainingDate').value = trainingDate;
+        document.getElementById('trainingType').value = trainingType || "Online";
+        document.getElementById('trainingStatus').value = status;
+        document.getElementById('trainingLocation').value = location;
+        document.getElementById('trainingTrainer').value = trainer;
+        
+        // Set Select2 value
+        $('#trainingClientID').val(clientId).trigger('change');
+        
+        document.getElementById('trainingModal').style.display = 'flex';
+    }
+
+    function closeTrainingModal() {
+        document.getElementById('trainingModal').style.display = 'none';
+    }
+
+    // Close modal when clicking outside content
+    window.addEventListener('click', function(e) {
+        const modal = document.getElementById('trainingModal');
+        if (e.target === modal) {
+            closeTrainingModal();
+        }
+    });
+</script>
+{{end}}

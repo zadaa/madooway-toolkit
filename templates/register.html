@@ -1,0 +1,44 @@
+{{define "content"}}
+<div class="auth-card">
+    <div class="auth-card-header">
+        <div class="auth-logo">
+            <i class="fa-solid fa-list-check"></i>
+            <span>MW Toolkit</span>
+        </div>
+        <h2>Buat Akun Baru</h2>
+        <p>Bergabung sekarang untuk mulai mengorganisasi tugas Anda.</p>
+    </div>
+    
+    <form action="/register" method="POST" class="auth-form">
+        <div class="form-group">
+            <label for="username">Nama Pengguna</label>
+            <div class="input-wrapper">
+                <i class="fa-solid fa-user input-icon"></i>
+                <input type="text" id="username" name="username" placeholder="Masukkan username Anda" required autocomplete="username">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="email">Email</label>
+            <div class="input-wrapper">
+                <i class="fa-solid fa-envelope input-icon"></i>
+                <input type="email" id="email" name="email" placeholder="nama@email.com" required autocomplete="email">
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="password">Kata Sandi (Min. 6 Karakter)</label>
+            <div class="input-wrapper">
+                <i class="fa-solid fa-lock input-icon"></i>
+                <input type="password" id="password" name="password" placeholder="Buat kata sandi baru" minlength="6" required>
+            </div>
+        </div>
+        
+        <button type="submit" class="btn btn-primary btn-block">Daftar</button>
+    </form>
+    
+    <div class="auth-card-footer">
+        <p>Sudah memiliki akun? <a href="/login">Masuk di sini</a></p>
+    </div>
+</div>
+{{end}}

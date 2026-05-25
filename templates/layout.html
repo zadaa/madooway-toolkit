@@ -1,0 +1,141 @@
+{{define "layout"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}} - MW Toolkit</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/css/style.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="{{if .User}}dashboard-layout{{else}}auth-layout{{end}}">
+    
+    {{if .User}}
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <i class="fa-solid fa-list-check logo-icon"></i>
+            <span class="logo-text">MW Toolkit</span>
+        </div>
+        
+        <nav class="sidebar-menu">
+            <a href="/dashboard" class="menu-item {{if eq .ActiveTab "dashboard"}}active{{end}}">
+                <i class="fa-solid fa-chart-pie"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="/tasks" class="menu-item {{if eq .ActiveTab "tasks"}}active{{end}}">
+                <i class="fa-solid fa-list-check"></i>
+                <span>Daftar Tugas</span>
+            </a>
+            <a href="/clients" class="menu-item {{if eq .ActiveTab "clients"}}active{{end}}">
+                <i class="fa-solid fa-users"></i>
+                <span>Master Klien</span>
+            </a>
+            <a href="/trainings" class="menu-item {{if eq .ActiveTab "trainings"}}active{{end}}">
+                <i class="fa-solid fa-calendar-days"></i>
+                <span>Jadwal Training</span>
+            </a>
+        </nav>
+        
+        <div class="sidebar-footer">
+            <div class="user-profile">
+                <div class="avatar">
+                    <i class="fa-solid fa-user"></i>
+                </div>
+                <div class="user-info">
+                    <span class="username">{{.User.Username}}</span>
+                    <span class="email">{{.User.Email}}</span>
+                </div>
+            </div>
+            <a href="/logout" class="btn-logout" title="Log Out">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span>Keluar</span>
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="main-wrapper">
+        <header class="top-bar">
+            <div>
+                <h1 class="page-title">{{.Title}}</h1>
+            </div>
+            <div class="date-display" id="currentDate"></div>
+        </header>
+
+        <main class="content-container">
+            <!-- Alert Messages -->
+            {{if .ErrorMsg}}
+            <div class="alert alert-danger animate-fade-in">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <div class="alert-content">
+                    <span class="alert-title">Kesalahan</span>
+                    <span class="alert-desc">{{.ErrorMsg}}</span>
+                </div>
+                <button class="close-alert" onclick="this.parentElement.remove()">&times;</button>
+            </div>
+            {{end}}
+
+            {{if .SuccessMsg}}
+            <div class="alert alert-success animate-fade-in">
+                <i class="fa-solid fa-circle-check"></i>
+                <div class="alert-content">
+                    <span class="alert-title">Berhasil</span>
+                    <span class="alert-desc">{{.SuccessMsg}}</span>
+                </div>
+                <button class="close-alert" onclick="this.parentElement.remove()">&times;</button>
+            </div>
+            {{end}}
+
+            <!-- Sub-template Content -->
+            {{template "content" .}}
+        </main>
+    </div>
+    
+    {{else}}
+    <!-- Guest Layout (Login/Register) -->
+    <main class="auth-container">
+        {{if .ErrorMsg}}
+        <div class="alert alert-danger animate-fade-in">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <div class="alert-content">
+                <span class="alert-title">Kesalahan</span>
+                <span class="alert-desc">{{.ErrorMsg}}</span>
+            </div>
+        </div>
+        {{end}}
+
+        {{if .SuccessMsg}}
+        <div class="alert alert-success animate-fade-in">
+            <i class="fa-solid fa-circle-check"></i>
+            <div class="alert-content">
+                <span class="alert-title">Berhasil</span>
+                <span class="alert-desc">{{.SuccessMsg}}</span>
+            </div>
+        </div>
+        {{end}}
+
+        {{template "content" .}}
+    </main>
+    {{end}}
+
+    <script src="/static/js/main.js"></script>
+    <script>
+        // Set formatted current date in top bar
+        const dateEl = document.getElementById('currentDate');
+        if (dateEl) {
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            dateEl.textContent = new Date().toLocaleDateString('id-ID', options);
+        }
+    </script>
+</body>
+</html>
+{{end}}

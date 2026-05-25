@@ -1,0 +1,649 @@
+{{define "content"}}
+<!-- Include Select2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+<style>
+/* Filter Container and Grid */
+.filter-row-container {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 16px 20px;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow-soft);
+}
+
+.filter-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+}
+
+.filter-grid > * {
+    flex: 1 1 180px;
+}
+
+.filter-grid .btn-reset {
+    flex: 0 0 38px;
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.filter-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.filter-select-wrapper select {
+    width: 100%;
+    padding: 10px 14px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    color: var(--text-primary);
+    font-size: 13px;
+    outline: none;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+}
+
+.filter-select-wrapper select:focus {
+    border-color: var(--color-primary);
+}
+
+.filter-grid input[type="date"] {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    color: var(--text-primary);
+    outline: none;
+    transition: var(--transition-smooth);
+    width: 100%;
+}
+
+.filter-grid input[type="date"]:focus {
+    border-color: var(--color-primary);
+    background: rgba(255, 255, 255, 0.08);
+}
+</style>
+
+<!-- Dashboard Interactive Filters -->
+<div class="filter-row-container">
+    <div class="filter-grid">
+        <div class="filter-select-wrapper">
+            <select id="clientFilter">
+                <option value="">Semua Klien (Master)</option>
+                <option value="internal">Internal (Tanpa Klien)</option>
+                {{range .Data.Clients}}
+                <option value="{{.ID}}">{{.Name}}</option>
+                {{end}}
+            </select>
+        </div>
+        
+        <div class="filter-input-wrapper date-group" style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 11px; color: var(--text-secondary); white-space: nowrap; font-weight: 500;">Dari:</span>
+            <input type="date" id="startDateFilter" onchange="updateDashboard()" style="padding: 10px 12px; font-size: 12px;">
+        </div>
+        
+        <div class="filter-input-wrapper date-group" style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 11px; color: var(--text-secondary); white-space: nowrap; font-weight: 500;">S/D:</span>
+            <input type="date" id="endDateFilter" onchange="updateDashboard()" style="padding: 10px 12px; font-size: 12px;">
+        </div>
+        
+        <button onclick="resetDashboardFilters()" class="btn-reset" title="Hapus Filter">
+            <i class="fa-solid fa-rotate-left"></i>
+        </button>
+    </div>
+</div>
+
+<!-- KPI Cards List -->
+<div class="dashboard-grid">
+    <!-- KPI Cards -->
+    <div class="kpi-card total">
+        <div class="kpi-icon-wrapper">
+            <i class="fa-solid fa-list-check"></i>
+        </div>
+        <div class="kpi-content">
+            <h3>Total Tugas</h3>
+            <span class="kpi-value">{{.Data.KPI.Total}}</span>
+        </div>
+    </div>
+    
+    <div class="kpi-card pending">
+        <div class="kpi-icon-wrapper">
+            <i class="fa-solid fa-clock"></i>
+        </div>
+        <div class="kpi-content">
+            <h3>Tertunda</h3>
+            <span class="kpi-value">{{.Data.KPI.Pending}}</span>
+        </div>
+    </div>
+    
+    <div class="kpi-card in-progress">
+        <div class="kpi-icon-wrapper">
+            <i class="fa-solid fa-spinner fa-spin"></i>
+        </div>
+        <div class="kpi-content">
+            <h3>Sedang Berjalan</h3>
+            <span class="kpi-value">{{.Data.KPI.InProgress}}</span>
+        </div>
+    </div>
+    
+    <div class="kpi-card completed">
+        <div class="kpi-icon-wrapper">
+            <i class="fa-solid fa-circle-check"></i>
+        </div>
+        <div class="kpi-content">
+            <h3>Selesai</h3>
+            <span class="kpi-value">{{.Data.KPI.Completed}}</span>
+        </div>
+    </div>
+</div>
+
+<div class="dashboard-section completion-section">
+    <div class="completion-card">
+        <div class="completion-info">
+            <div>
+                <h3>Rasio Penyelesaian Tugas</h3>
+                <p class="section-desc">Persentase tugas yang telah diselesaikan dibanding total tugas.</p>
+            </div>
+            <span class="completion-percentage">{{printf "%.1f" .Data.KPI.CompletionRate}}%</span>
+        </div>
+        <div class="progress-bar-container">
+            <div class="progress-bar-fill" style="width: {{.Data.KPI.CompletionRate}}%"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Task breakdown charts -->
+<div class="charts-grid">
+    <!-- Category Breakdown Chart -->
+    <div class="chart-card">
+        <div class="chart-header">
+            <h3>Tugas Berdasarkan Kategori</h3>
+        </div>
+        <div class="chart-body">
+            <div class="chart-canvas-container">
+                <canvas id="categoryChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Breakdown Chart -->
+    <div class="chart-card">
+        <div class="chart-header">
+            <h3>Tugas Berdasarkan Status</h3>
+        </div>
+        <div class="chart-body">
+            <div class="chart-canvas-container">
+                <canvas id="statusChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Training breakdown charts -->
+<div class="charts-grid" style="margin-top: 24px;">
+    <!-- Training by Trainer Chart -->
+    <div class="chart-card">
+        <div class="chart-header">
+            <h3>Jadwal Training berdasarkan Trainer</h3>
+        </div>
+        <div class="chart-body">
+            <div class="chart-canvas-container">
+                <canvas id="trainerChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Training by Client Chart -->
+    <div class="chart-card">
+        <div class="chart-header">
+            <h3>Jadwal Training berdasarkan Klien</h3>
+        </div>
+        <div class="chart-body">
+            <div class="chart-canvas-container">
+                <canvas id="clientTrainingChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Full Width Line Chart -->
+<div class="chart-card full-width-card" style="margin-top: 24px;">
+    <div class="chart-header">
+        <h3>Tren Pembuatan Tugas</h3>
+    </div>
+    <div class="chart-body">
+        <div class="chart-canvas-container-full">
+            <canvas id="trendChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Include jQuery and Select2 JS -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+    // Read JSON variables from Go backend
+    const initialStatusData = {{.Data.StatusJSON}} || {};
+    const initialCategoryData = {{.Data.CategoryJSON}} || {};
+    const initialDateData = {{.Data.DateJSON}} || [];
+    const tasks = {{.Data.TasksJSON}} || [];
+    const schedules = {{.Data.SchedulesJSON}} || [];
+
+    // Colors matching style CSS
+    const cyanColor = '#ff7b00';
+    const blueColor = '#ffae19';
+    const purpleColor = '#9b5de5';
+    const yellowColor = '#ffb703';
+    const orangeColor = '#fb8500';
+    const redColor = '#ff4d6d';
+    const greenColor = '#2ec4b6';
+
+    // Global Chart instance handlers
+    let categoryChart, statusChart, trendChart, trainerChart, clientTrainingChart;
+
+    document.addEventListener("DOMContentLoaded", function() {
+
+        // 1. Initialize Category Chart (Doughnut)
+        const catLabels = Object.keys(initialCategoryData);
+        const catValues = Object.values(initialCategoryData);
+        if (catLabels.length === 0) {
+            catLabels.push("Belum ada kategori");
+            catValues.push(1);
+        }
+
+        const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+        categoryChart = new Chart(categoryCtx, {
+            type: 'doughnut',
+            data: {
+                labels: catLabels,
+                datasets: [{
+                    data: catValues,
+                    backgroundColor: [blueColor, cyanColor, purpleColor, yellowColor, orangeColor, redColor, greenColor],
+                    borderWidth: 2,
+                    borderColor: '#111827',
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            color: '#9ca3af',
+                            font: { family: 'Inter', size: 12, weight: '500' },
+                            padding: 15
+                        }
+                    }
+                },
+                cutout: '70%'
+            }
+        });
+
+        // 2. Initialize Status Chart (Bar)
+        const statusLabels = ["Pending", "In Progress", "Completed"];
+        const statusValues = [
+            initialStatusData["Pending"] || 0,
+            initialStatusData["In Progress"] || 0,
+            initialStatusData["Completed"] || 0
+        ];
+
+        const statusCtx = document.getElementById('statusChart').getContext('2d');
+        statusChart = new Chart(statusCtx, {
+            type: 'bar',
+            data: {
+                labels: statusLabels,
+                datasets: [{
+                    label: 'Jumlah Tugas',
+                    data: statusValues,
+                    backgroundColor: [redColor, yellowColor, greenColor],
+                    borderRadius: 6,
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 1, color: '#9ca3af' },
+                        grid: { color: 'rgba(156, 163, 175, 0.08)' }
+                    },
+                    x: {
+                        ticks: { color: '#9ca3af' },
+                        grid: { display: false }
+                    }
+                },
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+
+        // 3. Initialize Trainer Chart (Bar)
+        const trainerCtx = document.getElementById('trainerChart').getContext('2d');
+        trainerChart = new Chart(trainerCtx, {
+            type: 'bar',
+            data: {
+                labels: ["Belum ada data"],
+                datasets: [{
+                    label: 'Jumlah Training',
+                    data: [0],
+                    backgroundColor: purpleColor,
+                    borderRadius: 6,
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 1, color: '#9ca3af' },
+                        grid: { color: 'rgba(156, 163, 175, 0.08)' }
+                    },
+                    x: {
+                        ticks: { color: '#9ca3af' },
+                        grid: { display: false }
+                    }
+                },
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+
+        // 4. Initialize Client Training Chart (Doughnut)
+        const clientTrainingCtx = document.getElementById('clientTrainingChart').getContext('2d');
+        clientTrainingChart = new Chart(clientTrainingCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ["Belum ada data"],
+                datasets: [{
+                    data: [1],
+                    backgroundColor: [blueColor, cyanColor, purpleColor, yellowColor, orangeColor, redColor, greenColor],
+                    borderWidth: 2,
+                    borderColor: '#111827',
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            color: '#9ca3af',
+                            font: { family: 'Inter', size: 12, weight: '500' },
+                            padding: 15
+                        }
+                    }
+                },
+                cutout: '70%'
+            }
+        });
+
+        // 5. Initialize Trend Chart (Line)
+        const dateLabels = initialDateData.map(item => item.date);
+        const dateValues = initialDateData.map(item => item.count);
+
+        const trendCtx = document.getElementById('trendChart').getContext('2d');
+        const gradient = trendCtx.createLinearGradient(0, 0, 0, 300);
+        gradient.addColorStop(0, 'rgba(255, 123, 0, 0.35)');
+        gradient.addColorStop(1, 'rgba(255, 123, 0, 0.0)');
+
+        trendChart = new Chart(trendCtx, {
+            type: 'line',
+            data: {
+                labels: dateLabels,
+                datasets: [{
+                    label: 'Tugas Dibuat',
+                    data: dateValues,
+                    borderColor: cyanColor,
+                    backgroundColor: gradient,
+                    fill: true,
+                    tension: 0.3,
+                    borderWidth: 3,
+                    pointBackgroundColor: cyanColor,
+                    pointBorderColor: '#111827',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 1, color: '#9ca3af' },
+                        grid: { color: 'rgba(156, 163, 175, 0.08)' }
+                    },
+                    x: {
+                        ticks: { color: '#9ca3af' },
+                        grid: { color: 'rgba(156, 163, 175, 0.04)' }
+                    }
+                },
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+
+        // Initialize Select2 Client filter (after charts are fully initialized to avoid early triggers)
+        $('#clientFilter').select2({
+            placeholder: "Semua Klien (Master)",
+            allowClear: true,
+            width: '100%'
+        }).on('change', function() {
+            updateDashboard();
+        });
+
+        // Trigger update to synchronize with initial data calculations
+        updateDashboard();
+    });
+
+    // Filtering & KPI/Chart updates handler
+    function updateDashboard() {
+        const clientVal = document.getElementById('clientFilter').value;
+        const startDateVal = document.getElementById('startDateFilter').value;
+        const endDateVal = document.getElementById('endDateFilter').value;
+
+        // A. Filter Tasks List
+        const filteredTasks = tasks.filter(task => {
+            // Client filter
+            if (clientVal !== '') {
+                if (clientVal === 'internal') {
+                    if (task.ClientID.Valid) return false;
+                } else {
+                    if (!task.ClientID.Valid || task.ClientID.Int64.toString() !== clientVal) return false;
+                }
+            }
+            
+            // Date filter (compare task.CreatedAt)
+            const taskDate = task.CreatedAt.split('T')[0]; // "YYYY-MM-DD"
+            if (startDateVal !== '' && taskDate < startDateVal) return false;
+            if (endDateVal !== '' && taskDate > endDateVal) return false;
+            
+            return true;
+        });
+
+        // B. Filter Schedules List
+        const filteredSchedules = schedules.filter(sch => {
+            // Client filter
+            if (clientVal !== '') {
+                if (clientVal === 'internal') {
+                    // Schedules always require a client, so internal yields 0
+                    return false;
+                } else {
+                    if (sch.ClientID.toString() !== clientVal) return false;
+                }
+            }
+            
+            // Date filter (compare sch.TrainingDate)
+            const schDate = sch.TrainingDate.split('T')[0]; // "YYYY-MM-DD"
+            if (startDateVal !== '' && schDate < startDateVal) return false;
+            if (endDateVal !== '' && schDate > endDateVal) return false;
+            
+            return true;
+        });
+
+        // 1. Recalculate KPIs
+        const total = filteredTasks.length;
+        let pending = 0;
+        let inProgress = 0;
+        let completed = 0;
+
+        filteredTasks.forEach(t => {
+            if (t.Status === 'Pending') pending++;
+            else if (t.Status === 'In Progress') inProgress++;
+            else if (t.Status === 'Completed') completed++;
+        });
+
+        const rate = total > 0 ? (completed / total) * 100 : 0;
+
+        // Update KPI card numbers
+        document.querySelector('.kpi-card.total .kpi-value').textContent = total;
+        document.querySelector('.kpi-card.pending .kpi-value').textContent = pending;
+        document.querySelector('.kpi-card.in-progress .kpi-value').textContent = inProgress;
+        document.querySelector('.kpi-card.completed .kpi-value').textContent = completed;
+        document.querySelector('.completion-percentage').textContent = rate.toFixed(1) + '%';
+        document.querySelector('.progress-bar-fill').style.width = rate + '%';
+
+        // 2. Redraw Category Chart
+        const categoryCounts = {};
+        filteredTasks.forEach(t => {
+            categoryCounts[t.Category] = (categoryCounts[t.Category] || 0) + 1;
+        });
+
+        let catLabels = Object.keys(categoryCounts);
+        let catValues = Object.values(categoryCounts);
+
+        if (catLabels.length === 0) {
+            catLabels.push("Belum ada kategori");
+            catValues.push(1);
+        }
+
+        if (categoryChart) {
+            categoryChart.data.labels = catLabels;
+            categoryChart.data.datasets[0].data = catValues;
+            categoryChart.update();
+        }
+
+        // 3. Redraw Status Chart
+        if (statusChart) {
+            statusChart.data.datasets[0].data = [pending, inProgress, completed];
+            statusChart.update();
+        }
+
+        // 4. Redraw Trainer Chart
+        const trainerCounts = {};
+        filteredSchedules.forEach(s => {
+            const tr = s.Trainer !== "" ? s.Trainer : "Belum ditentukan";
+            trainerCounts[tr] = (trainerCounts[tr] || 0) + 1;
+        });
+
+        let trainerLabels = Object.keys(trainerCounts);
+        let trainerValues = Object.values(trainerCounts);
+
+        if (trainerLabels.length === 0) {
+            trainerLabels.push("Belum ada data");
+            trainerValues.push(0);
+        }
+
+        if (trainerChart) {
+            trainerChart.data.labels = trainerLabels;
+            trainerChart.data.datasets[0].data = trainerValues;
+            trainerChart.update();
+        }
+
+        // 5. Redraw Client Training Chart
+        const clientTrainingCounts = {};
+        filteredSchedules.forEach(s => {
+            const cl = s.ClientName !== "" ? s.ClientName : "Lainnya";
+            clientTrainingCounts[cl] = (clientTrainingCounts[cl] || 0) + 1;
+        });
+
+        let clientLabels = Object.keys(clientTrainingCounts);
+        let clientValues = Object.values(clientTrainingCounts);
+
+        if (clientLabels.length === 0) {
+            clientLabels.push("Belum ada data");
+            clientValues.push(1);
+        }
+
+        if (clientTrainingChart) {
+            clientTrainingChart.data.labels = clientLabels;
+            clientTrainingChart.data.datasets[0].data = clientValues;
+            clientTrainingChart.update();
+        }
+
+        // 6. Redraw Trend Chart (Line Chart)
+        let start = null;
+        let end = null;
+
+        if (startDateVal !== '' && endDateVal !== '') {
+            start = new Date(startDateVal);
+            end = new Date(endDateVal);
+        } else {
+            // Default to last 14 days
+            end = new Date();
+            start = new Date();
+            start.setDate(end.getDate() - 13);
+        }
+
+        // Generate date map list in between
+        const dateMap = {};
+        const current = new Date(start);
+        while (current <= end) {
+            const dStr = current.toISOString().split('T')[0];
+            dateMap[dStr] = 0;
+            current.setDate(current.getDate() + 1);
+        }
+
+        // Count tasks for each date
+        filteredTasks.forEach(t => {
+            const taskDate = t.CreatedAt.split('T')[0];
+            if (dateMap[taskDate] !== undefined) {
+                dateMap[taskDate]++;
+            }
+        });
+
+        const trendLabels = [];
+        const trendValues = [];
+
+        for (const dStr in dateMap) {
+            const t = new Date(dStr);
+            const pretty = t.toLocaleDateString('id-ID', { month: 'short', day: '2-digit' });
+            trendLabels.push(pretty);
+            trendValues.push(dateMap[dStr]);
+        }
+
+        if (trendChart) {
+            trendChart.data.labels = trendLabels;
+            trendChart.data.datasets[0].data = trendValues;
+            trendChart.update();
+        }
+    }
+
+    function resetDashboardFilters() {
+        $('#clientFilter').val('').trigger('change');
+        document.getElementById('startDateFilter').value = '';
+        document.getElementById('endDateFilter').value = '';
+        updateDashboard();
+    }
+</script>
+{{end}}

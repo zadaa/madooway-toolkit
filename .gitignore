@@ -1,0 +1,32 @@
+# Binaries and executables
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+task-manager-go
+task-manager-go.exe
+
+# Environment configuration (secrets)
+.env
+.env.local
+.env.*.local
+
+# Logs and stack dumps
+*.log
+*.stackdump
+nohup.out
+
+# OS files
+.DS_Store
+Thumbs.db
+EmtpyState
+
+# IDE / Editor folders
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

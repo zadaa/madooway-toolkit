@@ -1,0 +1,180 @@
+{{define "content"}}
+<div class="tasks-page-header">
+    <div>
+        <p class="section-desc">Kelola kustom klien dan paket harga layanan untuk proyek tugas Anda.</p>
+    </div>
+    
+    <button onclick="openAddClientModal()" class="btn btn-primary">
+        <i class="fa-solid fa-plus"></i>
+        <span>Klien Baru</span>
+    </button>
+</div>
+
+<!-- Clients Grid -->
+<div class="tasks-grid">
+    {{if not .Data}}
+    <div class="empty-state animate-fade-in">
+        <i class="fa-solid fa-users empty-icon"></i>
+        <h3>Belum Ada Klien</h3>
+        <p>Anda belum menambahkan klien master. Tambahkan klien untuk mengaitkan mereka dengan tugas Anda!</p>
+        <button onclick="openAddClientModal()" class="btn btn-primary btn-sm">Mulai Tambah Klien</button>
+    </div>
+    {{else}}
+        {{range .Data}}
+        <div class="task-card status-In Progress animate-fade-in" style="border-left: 4px solid var(--color-primary); min-height: 180px;">
+            <div class="task-card-header">
+                <span class="badge badge-category" style="background: rgba(255, 123, 0, 0.12); color: var(--color-primary); border: 1px solid rgba(255, 123, 0, 0.15);">
+                    <i class="fa-solid fa-box-archive"></i> &nbsp; {{.PricePackage}}
+                </span>
+                <span class="badge badge-category" style="background: rgba(155, 93, 229, 0.12); color: var(--color-purple); border: 1px solid rgba(155, 93, 229, 0.15);">
+                    <i class="fa-solid fa-tag"></i> &nbsp; {{if .ShortName}}{{.ShortName}}{{else}}-{{end}}
+                </span>
+            </div>
+            
+            <div class="task-card-body" style="margin-bottom: 12px;">
+                <h4 class="task-title" style="font-size: 18px; font-weight: 700;">{{.Name}}</h4>
+                <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 10px; font-size: 13px; color: var(--text-secondary);">
+                    <span><i class="fa-solid fa-user-tie" style="width: 16px; color: var(--color-secondary);"></i> PIC: {{if .PicName}}{{.PicName}}{{else}}-{{end}}</span>
+                    <span><i class="fa-solid fa-envelope" style="width: 16px; color: var(--text-muted);"></i> {{if .Email}}{{.Email}}{{else}}-{{end}}</span>
+                    <span><i class="fa-solid fa-phone" style="width: 16px; color: var(--text-muted);"></i> {{if .Phone}}{{.Phone}}{{else}}-{{end}}</span>
+                </div>
+            </div>
+            
+            <div class="task-card-actions">
+                <button class="btn-action-edit" title="Edit Klien"
+                        data-id="{{.ID}}"
+                        data-name="{{.Name}}"
+                        data-short-name="{{.ShortName}}"
+                        data-email="{{.Email}}"
+                        data-phone="{{.Phone}}"
+                        data-pic-name="{{.PicName}}"
+                        data-price-package="{{.PricePackage}}"
+                        onclick="openEditClientModal(this)">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                </button>
+                
+                <form action="/clients/delete" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus klien ini? Semua tugas yang terkait dengan klien ini akan diubah menjadi tanpa klien.')" style="display:inline;">
+                    <input type="hidden" name="id" value="{{.ID}}">
+                    <button type="submit" class="btn-action-delete" title="Hapus Klien">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+        {{end}}
+    {{end}}
+</div>
+
+<!-- Unified Client Modal (Create & Edit) -->
+<div id="clientModal" class="modal">
+    <div class="modal-content animate-slide-in">
+        <div class="modal-header">
+            <h3 id="clientModalTitle">Tambah Klien Baru</h3>
+            <span class="close-modal" onclick="closeClientModal()">&times;</span>
+        </div>
+        <form id="clientForm" action="/clients/create" method="POST">
+            <input type="hidden" id="clientID" name="id">
+            
+            <div class="form-row">
+                <div class="form-group col-half">
+                    <label for="clientName">Nama Klien / Perusahaan</label>
+                    <input type="text" id="clientName" name="name" required placeholder="Contoh: PT. Maju Bersama">
+                </div>
+                <div class="form-group col-half">
+                    <label for="clientShortName">Nama Singkat / Alias</label>
+                    <input type="text" id="clientShortName" name="short_name" placeholder="Contoh: MB, Google, dsb.">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group col-half">
+                    <label for="clientPricePackage">Paket Harga</label>
+                    <input type="text" id="clientPricePackage" name="price_package" required placeholder="Contoh: Rp 5.000.000 / bln, Gold Plan, etc.">
+                </div>
+                <div class="form-group col-half">
+                    <label for="clientPicName">Nama PIC</label>
+                    <input type="text" id="clientPicName" name="pic_name" placeholder="Contoh: Budi Santoso">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group col-half">
+                    <label for="clientEmail">Email Klien</label>
+                    <input type="email" id="clientEmail" name="email" placeholder="klien@email.com">
+                </div>
+                
+                <div class="form-group col-half">
+                    <label for="clientPhone">No. Telepon / WA</label>
+                    <input type="text" id="clientPhone" name="phone" placeholder="08123456789">
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeClientModal()">Batal</button>
+                <button type="submit" class="btn btn-primary">Simpan</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openAddClientModal() {
+        const modal = document.getElementById('clientModal');
+        const modalTitle = document.getElementById('clientModalTitle');
+        const form = document.getElementById('clientForm');
+        const clientID = document.getElementById('clientID');
+
+        if (!modal) return;
+
+        modalTitle.textContent = "Tambah Klien Baru";
+        form.action = "/clients/create";
+        clientID.value = "";
+        form.reset();
+        
+        modal.style.display = "flex";
+    }
+
+    function openEditClientModal(btn) {
+        const modal = document.getElementById('clientModal');
+        const modalTitle = document.getElementById('clientModalTitle');
+        const form = document.getElementById('clientForm');
+        const clientID = document.getElementById('clientID');
+        const clientName = document.getElementById('clientName');
+        const clientShortName = document.getElementById('clientShortName');
+        const clientEmail = document.getElementById('clientEmail');
+        const clientPhone = document.getElementById('clientPhone');
+        const clientPicName = document.getElementById('clientPicName');
+        const clientPricePackage = document.getElementById('clientPricePackage');
+
+        if (!modal) return;
+
+        modalTitle.textContent = "Edit Klien";
+        form.action = "/clients/update";
+        
+        clientID.value = btn.getAttribute('data-id') || "";
+        clientName.value = btn.getAttribute('data-name') || "";
+        clientShortName.value = btn.getAttribute('data-short-name') || "";
+        clientEmail.value = btn.getAttribute('data-email') || "";
+        clientPhone.value = btn.getAttribute('data-phone') || "";
+        clientPicName.value = btn.getAttribute('data-pic-name') || "";
+        clientPricePackage.value = btn.getAttribute('data-price-package') || "";
+        
+        modal.style.display = "flex";
+    }
+
+    function closeClientModal() {
+        const modal = document.getElementById('clientModal');
+        if (modal) {
+            modal.style.display = "none";
+        }
+    }
+
+    // Dismiss modal on background click
+    window.addEventListener('click', function(event) {
+        const modal = document.getElementById('clientModal');
+        if (event.target === modal) {
+            closeClientModal();
+        }
+    });
+</script>
+{{end}}
