@@ -42,22 +42,31 @@
                 <i class="fa-solid fa-chart-pie"></i>
                 <span>Dashboard</span>
             </a>
+            
+            <div class="menu-category">
+                <span class="category-title">Master Data</span>
+                <a href="/users" class="menu-item sub-item {{if eq .ActiveTab "users"}}active{{end}}">
+                    <i class="fa-solid fa-user-gear"></i>
+                    <span>Data User</span>
+                </a>
+                <a href="/clients" class="menu-item sub-item {{if eq .ActiveTab "clients"}}active{{end}}">
+                    <i class="fa-solid fa-users"></i>
+                    <span>Data Klien</span>
+                </a>
+            </div>
+            
             <a href="/tasks" class="menu-item {{if eq .ActiveTab "tasks"}}active{{end}}">
                 <i class="fa-solid fa-list-check"></i>
                 <span>Daftar Tugas</span>
             </a>
-            <a href="/clients" class="menu-item {{if eq .ActiveTab "clients"}}active{{end}}">
-                <i class="fa-solid fa-users"></i>
-                <span>Master Klien</span>
-            </a>
-            <a href="/trainings" class="menu-item {{if eq .ActiveTab "trainings"}}active{{end}}">
-                <i class="fa-solid fa-calendar-days"></i>
-                <span>Jadwal Training</span>
-            </a>
-            <a href="/users" class="menu-item {{if eq .ActiveTab "users"}}active{{end}}">
-                <i class="fa-solid fa-user-gear"></i>
-                <span>Manajemen User</span>
-            </a>
+            
+            <div class="menu-category">
+                <span class="category-title">Training</span>
+                <a href="/trainings" class="menu-item sub-item {{if eq .ActiveTab "trainings"}}active{{end}}">
+                    <i class="fa-solid fa-calendar-days"></i>
+                    <span>Jadwal Training</span>
+                </a>
+            </div>
         </nav>
         
         <div class="sidebar-footer">
