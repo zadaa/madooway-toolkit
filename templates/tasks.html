@@ -18,7 +18,7 @@
     <div class="filter-grid">
         <div class="filter-input-wrapper search-group">
             <i class="fa-solid fa-magnifying-glass"></i>
-            <input type="text" id="searchFilter" placeholder="Cari judul, deskripsi, atau klien..." oninput="applyFilters()">
+            <input type="text" id="searchFilter" placeholder="Cari judul, deskripsi, atau klien..." oninput="currentPage = 1; applyFilters()">
         </div>
         
         <div class="filter-select-wrapper">
@@ -61,12 +61,12 @@
 
         <div class="filter-input-wrapper date-group" style="display: flex; align-items: center; gap: 8px;">
             <span style="font-size: 11px; color: var(--text-secondary); white-space: nowrap; font-weight: 500;">Dari:</span>
-            <input type="date" id="startDateFilter" onchange="applyFilters()" style="padding: 10px 12px; font-size: 12px;">
+            <input type="date" id="startDateFilter" onchange="currentPage = 1; applyFilters()" style="padding: 10px 12px; font-size: 12px;">
         </div>
         
         <div class="filter-input-wrapper date-group" style="display: flex; align-items: center; gap: 8px;">
             <span style="font-size: 11px; color: var(--text-secondary); white-space: nowrap; font-weight: 500;">S/D:</span>
-            <input type="date" id="endDateFilter" onchange="applyFilters()" style="padding: 10px 12px; font-size: 12px;">
+            <input type="date" id="endDateFilter" onchange="currentPage = 1; applyFilters()" style="padding: 10px 12px; font-size: 12px;">
         </div>
         
         <button onclick="resetFilters()" class="btn-reset" title="Hapus Filter">
@@ -84,7 +84,7 @@
     <button onclick="openAddTaskModal()" class="btn btn-primary btn-sm">Mulai Buat Tugas</button>
 </div>
 {{else}}
-<div class="table-responsive" id="tableResponsiveContainer">
+<div class="table-responsive has-pagination" id="tableResponsiveContainer">
     <table class="premium-table" id="taskTable">
         <thead>
             <tr>
@@ -186,6 +186,12 @@
     </table>
 </div>
 
+<!-- Pagination Controls -->
+<div class="pagination-container" id="paginationContainer" style="display: none;">
+    <div class="pagination-info" id="paginationInfo">Menampilkan 0-0 dari 0 tugas</div>
+    <div class="pagination-nav" id="paginationNav"></div>
+</div>
+
 <!-- Empty state overlay inside filter (shown when visibleCount === 0) -->
 <div class="empty-state animate-fade-in" id="tableEmptyState" style="display: none;">
     <i class="fa-solid fa-magnifying-glass empty-icon"></i>
@@ -275,7 +281,27 @@
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
+    // Pagination variables
+    var currentPage = 1;
+    var pageSize = 25;
+
     $(document).ready(function() {
+        // Set default date range to today on first load (initial load)
+        const localDate = new Date();
+        const year = localDate.getFullYear();
+        const month = String(localDate.getMonth() + 1).padStart(2, '0');
+        const day = String(localDate.getDate()).padStart(2, '0');
+        const localTodayStr = `${year}-${month}-${day}`;
+
+        const startDateInput = document.getElementById('startDateFilter');
+        const endDateInput = document.getElementById('endDateFilter');
+        if (startDateInput && !startDateInput.value) {
+            startDateInput.value = localTodayStr;
+        }
+        if (endDateInput && !endDateInput.value) {
+            endDateInput.value = localTodayStr;
+        }
+
         // Initialize Select2 inside modal
         $('#taskClientID, #taskCategory, #taskSource, #taskStatus').select2({
             dropdownParent: $('#taskModal'),
@@ -289,6 +315,7 @@
 
         // Bind filter event change for Select2
         $('#clientFilter, #categoryFilter, #sourceFilter, #statusFilter').on('change', function() {
+            currentPage = 1; // Reset to first page when filter changes
             applyFilters();
         });
 
@@ -309,7 +336,7 @@
         const endDateVal = document.getElementById('endDateFilter').value;
 
         const rows = document.querySelectorAll('#taskTable tbody tr');
-        let visibleCount = 0;
+        let matchedRows = [];
 
         rows.forEach(row => {
             const title = row.getAttribute('data-title').toLowerCase();
@@ -358,32 +385,102 @@
             }
 
             if (match) {
-                row.style.display = '';
-                visibleCount++;
+                matchedRows.push(row);
             } else {
                 row.style.display = 'none';
             }
         });
 
-        // Update indices for visible rows
-        let visibleIndex = 1;
-        rows.forEach(row => {
-            if (row.style.display !== 'none') {
-                row.querySelector('.row-index').textContent = visibleIndex;
-                visibleIndex++;
+        const totalRows = matchedRows.length;
+        const totalPages = Math.ceil(totalRows / pageSize) || 1;
+
+        if (currentPage > totalPages) currentPage = totalPages;
+        if (currentPage < 1) currentPage = 1;
+
+        const startIndex = (currentPage - 1) * pageSize;
+        const endIndex = Math.min(startIndex + pageSize, totalRows);
+
+        // Show only rows for current page
+        matchedRows.forEach((row, idx) => {
+            if (idx >= startIndex && idx < endIndex) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
             }
+            // Update sequential row index based on filtered order (absolute index + 1)
+            row.querySelector('.row-index').textContent = idx + 1;
         });
+
+        // Render Pagination Controls
+        const paginationContainer = document.getElementById('paginationContainer');
+        if (totalRows > 0) {
+            paginationContainer.style.display = 'flex';
+            
+            // Update description text
+            document.getElementById('paginationInfo').textContent = 
+                `Menampilkan ${totalRows > 0 ? startIndex + 1 : 0}-${endIndex} dari ${totalRows} tugas`;
+            
+            // Build pagination buttons
+            const navEl = document.getElementById('paginationNav');
+            let navHtml = '';
+            
+            // Previous button
+            navHtml += `<button class="pagination-btn" ${currentPage === 1 ? 'disabled' : ''} onclick="changePage(${currentPage - 1})"><i class="fa-solid fa-angle-left"></i></button>`;
+            
+            // Page numbers
+            const maxVisiblePages = 5;
+            let startPage = Math.max(1, currentPage - 2);
+            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+            if (endPage - startPage < maxVisiblePages - 1) {
+                startPage = Math.max(1, endPage - maxVisiblePages + 1);
+            }
+            
+            if (startPage > 1) {
+                navHtml += `<button class="pagination-btn" onclick="changePage(1)">1</button>`;
+                if (startPage > 2) {
+                    navHtml += `<span style="color: var(--text-muted); display: inline-flex; align-items: center; padding: 0 4px;">...</span>`;
+                }
+            }
+            
+            for (let p = startPage; p <= endPage; p++) {
+                navHtml += `<button class="pagination-btn ${p === currentPage ? 'active' : ''}" onclick="changePage(${p})">${p}</button>`;
+            }
+            
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    navHtml += `<span style="color: var(--text-muted); display: inline-flex; align-items: center; padding: 0 4px;">...</span>`;
+                }
+                navHtml += `<button class="pagination-btn" onclick="changePage(${totalPages})">${totalPages}</button>`;
+            }
+            
+            // Next button
+            navHtml += `<button class="pagination-btn" ${currentPage === totalPages ? 'disabled' : ''} onclick="changePage(${currentPage + 1})"><i class="fa-solid fa-angle-right"></i></button>`;
+            
+            navEl.innerHTML = navHtml;
+        } else {
+            paginationContainer.style.display = 'none';
+        }
 
         // Handle empty states dynamically
         const emptyState = document.getElementById('tableEmptyState');
         const tableContainer = document.getElementById('tableResponsiveContainer');
 
-        if (visibleCount === 0) {
+        if (totalRows === 0) {
             if (emptyState) emptyState.style.display = 'flex';
             if (tableContainer) tableContainer.style.display = 'none';
         } else {
             if (emptyState) emptyState.style.display = 'none';
             if (tableContainer) tableContainer.style.display = 'block';
+        }
+    }
+
+    function changePage(p) {
+        currentPage = p;
+        applyFilters();
+        // Smooth scroll to the top of the tableresponsive container
+        const tableEl = document.getElementById('tableResponsiveContainer');
+        if (tableEl) {
+            tableEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
     }
 
@@ -397,6 +494,8 @@
         $('#sourceFilter').val('').trigger('change');
         $('#statusFilter').val('').trigger('change');
 
+        // Apply filters resetting currentPage to 1
+        currentPage = 1;
         applyFilters();
     }
 </script>
