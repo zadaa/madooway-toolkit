@@ -1,21 +1,21 @@
 /* Design System & Root Variables */
 :root {
-    --bg-dark: #090e17;
-    --bg-card: rgba(18, 26, 43, 0.65);
-    --bg-card-hover: rgba(26, 38, 62, 0.8);
-    --border-color: rgba(255, 255, 255, 0.06);
+    --bg-dark: #030303;
+    --bg-card: rgba(18, 18, 18, 0.7);
+    --bg-card-hover: rgba(28, 28, 28, 0.9);
+    --border-color: rgba(255, 255, 255, 0.08);
     --text-primary: #f8fafc;
     --text-secondary: #94a3b8;
     --text-muted: #64748b;
     
     /* Variable theme backdrops */
-    --bg-sidebar: #0b111e;
-    --bg-topbar: rgba(9, 14, 23, 0.8);
-    --bg-modal: #0f172a;
+    --bg-sidebar: #070707;
+    --bg-topbar: rgba(3, 3, 3, 0.85);
+    --bg-modal: #0a0a0a;
     --bg-input: rgba(255, 255, 255, 0.04);
     --bg-input-focus: rgba(255, 255, 255, 0.08);
     --bg-toggle: rgba(255, 255, 255, 0.04);
-    --bg-select2-dropdown: #121a2b;
+    --bg-select2-dropdown: #0c0c0c;
     --bg-table-header: rgba(255, 255, 255, 0.02);
     --bg-table-row-hover: rgba(255, 255, 255, 0.02);
     
@@ -32,7 +32,7 @@
     --status-completed: #2ec4b6;
     --status-completed-bg: rgba(46, 196, 182, 0.15);
     
-    --shadow-soft: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+    --shadow-soft: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
