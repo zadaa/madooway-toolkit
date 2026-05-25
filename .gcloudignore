@@ -1,0 +1,22 @@
+# Exclude Git files
+.git/
+.gitignore
+
+# Exclude gcloud files
+.gcloudignore
+
+# Exclude local Go binaries and environment files
+*.exe
+task-manager-go
+task-manager-go.exe
+.env
+.env.*
+*.log
+*.stackdump
+nohup.out
+
+# Exclude temp folders
+node_modules/
+.gemini/
+.idea/
+.vscode/
