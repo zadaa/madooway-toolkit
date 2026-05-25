@@ -1,6 +1,6 @@
 module task-manager-go
 
-go 1.26.3
+go 1.22.0
 
 require (
 	filippo.io/edwards25519 v1.2.0 // indirect
