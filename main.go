@@ -51,6 +51,11 @@ func main() {
 	mux.HandleFunc("POST /trainings/update", middleware.AuthRequired(handlers.UpdateTraining))
 	mux.HandleFunc("POST /trainings/delete", middleware.AuthRequired(handlers.DeleteTraining))
 
+	mux.HandleFunc("GET /users", middleware.AuthRequired(handlers.ListUsers))
+	mux.HandleFunc("POST /users/create", middleware.AuthRequired(handlers.CreateUser))
+	mux.HandleFunc("POST /users/update", middleware.AuthRequired(handlers.UpdateUser))
+	mux.HandleFunc("POST /users/delete", middleware.AuthRequired(handlers.DeleteUser))
+
 	// Root Redirect Handler
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {

@@ -1,0 +1,257 @@
+{{define "content"}}
+<div class="tasks-page-header">
+    <div>
+        <p class="section-desc">Kelola akun pengguna, email, dan password untuk sistem TaskFlow.</p>
+    </div>
+    
+    <button onclick="openAddUserModal()" class="btn btn-primary">
+        <i class="fa-solid fa-plus"></i>
+        <span>User Baru</span>
+    </button>
+</div>
+
+<!-- Filter Section -->
+<div class="filter-row-container">
+    <div class="filter-grid">
+        <div class="filter-input-wrapper search-group" style="flex: 1 1 300px;">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="searchFilter" placeholder="Cari username atau email..." oninput="applyFilters()">
+        </div>
+        
+        <button onclick="resetFilters()" class="btn-reset" title="Hapus Filter">
+            <i class="fa-solid fa-rotate-left"></i>
+        </button>
+    </div>
+</div>
+
+<!-- Table Container -->
+{{if not .Data}}
+<div class="empty-state animate-fade-in" id="emptyStateNoData">
+    <i class="fa-solid fa-users empty-icon"></i>
+    <h3>Belum Ada User</h3>
+    <p>Belum ada user yang terdaftar di sistem. Mulai buat user baru sekarang!</p>
+    <button onclick="openAddUserModal()" class="btn btn-primary btn-sm">Tambah User Pertama</button>
+</div>
+{{else}}
+<div class="table-responsive" id="tableResponsiveContainer">
+    <table class="premium-table" id="userTable">
+        <thead>
+            <tr>
+                <th style="width: 50px;">No.</th>
+                <th>Nama Pengguna (Username)</th>
+                <th>Alamat Email</th>
+                <th>Tanggal Terdaftar</th>
+                <th style="width: 120px; text-align: center;">Aksi</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{range .Data}}
+            <tr data-id="{{.ID}}"
+                data-username="{{.Username}}"
+                data-email="{{.Email}}">
+                
+                <td class="row-index" style="font-weight: 600; color: var(--text-muted);"></td>
+                
+                <td>
+                    <div style="font-weight: 600; color: var(--text-primary);">
+                        {{.Username}}
+                        {{if eq .ID $.User.ID}}
+                        <span class="badge" style="background: rgba(155, 93, 229, 0.12); color: var(--color-purple); border: 1px solid rgba(155, 93, 229, 0.15); margin-left: 6px; font-size: 11px;">Aktif</span>
+                        {{end}}
+                    </div>
+                </td>
+                
+                <td>{{.Email}}</td>
+                
+                <td>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <i class="fa-solid fa-calendar-check" style="color: var(--color-primary);"></i>
+                        <span>{{.FormattedCreatedAt}}</span>
+                    </div>
+                </td>
+                
+                <td>
+                    <div class="table-actions" style="justify-content: center;">
+                        <button class="btn-action-edit" title="Edit User"
+                                data-id="{{.ID}}"
+                                data-username="{{.Username}}"
+                                data-email="{{.Email}}"
+                                onclick="openEditUserModal(this)">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </button>
+                        
+                        {{if eq .ID $.User.ID}}
+                        <button class="btn-action-delete" title="Anda tidak dapat menghapus akun Anda sendiri" style="opacity: 0.35; cursor: not-allowed;" onclick="alert('Anda tidak dapat menghapus akun aktif Anda sendiri.'); return false;">
+                            <i class="fa-solid fa-ban"></i>
+                        </button>
+                        {{else}}
+                        <form action="/users/delete" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus user ini?')" style="display:inline;">
+                            <input type="hidden" name="id" value="{{.ID}}">
+                            <button type="submit" class="btn-action-delete" title="Hapus User">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </form>
+                        {{end}}
+                    </div>
+                </td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
+</div>
+
+<!-- Empty State Filter Match -->
+<div class="empty-state animate-fade-in" id="tableEmptyState" style="display: none;">
+    <i class="fa-solid fa-magnifying-glass empty-icon"></i>
+    <h3>Tidak Ada User Ditemukan</h3>
+    <p>Tidak ada user yang cocok dengan kriteria pencarian Anda. Silakan ubah kata kunci Anda.</p>
+    <button onclick="resetFilters()" class="btn btn-secondary btn-sm">Reset Pencarian</button>
+</div>
+{{end}}
+
+<!-- User Modal (Create & Edit) -->
+<div id="userModal" class="modal">
+    <div class="modal-content animate-slide-in">
+        <div class="modal-header">
+            <h3 id="modalTitle">Tambah User Baru</h3>
+            <span class="close-modal" onclick="closeUserModal()">&times;</span>
+        </div>
+        <form id="userForm" action="/users/create" method="POST">
+            <input type="hidden" id="userID" name="id">
+            
+            <div class="form-group">
+                <label for="userUsername">Nama Pengguna (Username)</label>
+                <input type="text" id="userUsername" name="username" required placeholder="Contoh: budiwijaya">
+            </div>
+
+            <div class="form-group">
+                <label for="userEmail">Alamat Email</label>
+                <input type="email" id="userEmail" name="email" required placeholder="Contoh: budi@gmail.com">
+            </div>
+
+            <div class="form-group">
+                <label for="userPassword">Kata Sandi (Password)</label>
+                <input type="password" id="userPassword" name="password" required placeholder="Minimal 6 karakter...">
+                <small id="passwordHelp" style="display: none; margin-top: 4px; font-size: 11px; color: var(--text-muted);">*Kosongkan jika tidak ingin mengubah password.</small>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeUserModal()">Batal</button>
+                <button type="submit" class="btn btn-primary">Simpan</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function applyFilters() {
+        const searchFilterEl = document.getElementById('searchFilter');
+        if (!searchFilterEl) return;
+
+        const searchVal = searchFilterEl.value.toLowerCase().trim();
+        const rows = document.querySelectorAll('#userTable tbody tr');
+        let visibleCount = 0;
+
+        rows.forEach(row => {
+            const username = row.getAttribute('data-username').toLowerCase();
+            const email = row.getAttribute('data-email').toLowerCase();
+
+            let match = true;
+            if (searchVal !== '') {
+                if (!username.includes(searchVal) && !email.includes(searchVal)) {
+                    match = false;
+                }
+            }
+
+            if (match) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        // Update indices
+        let visibleIndex = 1;
+        rows.forEach(row => {
+            if (row.style.display !== 'none') {
+                row.querySelector('.row-index').textContent = visibleIndex;
+                visibleIndex++;
+            }
+        });
+
+        const emptyState = document.getElementById('tableEmptyState');
+        const tableContainer = document.getElementById('tableResponsiveContainer');
+
+        if (visibleCount === 0) {
+            if (emptyState) emptyState.style.display = 'flex';
+            if (tableContainer) tableContainer.style.display = 'none';
+        } else {
+            if (emptyState) emptyState.style.display = 'none';
+            if (tableContainer) tableContainer.style.display = 'block';
+        }
+    }
+
+    function resetFilters() {
+        const searchFilterEl = document.getElementById('searchFilter');
+        if (searchFilterEl) {
+            searchFilterEl.value = '';
+            applyFilters();
+        }
+    }
+
+    function openAddUserModal() {
+        document.getElementById('modalTitle').textContent = "Tambah User Baru";
+        document.getElementById('userForm').action = "/users/create";
+        document.getElementById('userID').value = "";
+        document.getElementById('userUsername').value = "";
+        document.getElementById('userEmail').value = "";
+        
+        const passwordInput = document.getElementById('userPassword');
+        passwordInput.value = "";
+        passwordInput.required = true;
+        passwordInput.placeholder = "Minimal 6 karakter...";
+        document.getElementById('passwordHelp').style.display = "none";
+        
+        document.getElementById('userModal').style.display = "flex";
+    }
+
+    function openEditUserModal(btn) {
+        document.getElementById('modalTitle').textContent = "Edit User";
+        document.getElementById('userForm').action = "/users/update";
+        
+        const id = btn.getAttribute('data-id');
+        const username = btn.getAttribute('data-username');
+        const email = btn.getAttribute('data-email');
+        
+        document.getElementById('userID').value = id;
+        document.getElementById('userUsername').value = username;
+        document.getElementById('userEmail').value = email;
+        
+        const passwordInput = document.getElementById('userPassword');
+        passwordInput.value = "";
+        passwordInput.required = false;
+        passwordInput.placeholder = "Masukkan password baru jika ingin diubah...";
+        document.getElementById('passwordHelp').style.display = "block";
+        
+        document.getElementById('userModal').style.display = "flex";
+    }
+
+    function closeUserModal() {
+        document.getElementById('userModal').style.display = "none";
+    }
+
+    // Close modal when clicking background
+    window.addEventListener('click', function(e) {
+        const modal = document.getElementById('userModal');
+        if (e.target === modal) {
+            closeUserModal();
+        }
+    });
+
+    // Execute initially on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        applyFilters();
+    });
+</script>
+{{end}}
