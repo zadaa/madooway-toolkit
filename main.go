@@ -51,6 +51,11 @@ func main() {
 	mux.HandleFunc("POST /trainings/update", middleware.AuthRequired(handlers.UpdateTraining))
 	mux.HandleFunc("POST /trainings/delete", middleware.AuthRequired(handlers.DeleteTraining))
 
+	mux.HandleFunc("GET /performance", middleware.AuthRequired(handlers.ListPerformances))
+	mux.HandleFunc("POST /performance/create", middleware.AuthRequired(handlers.CreatePerformance))
+	mux.HandleFunc("POST /performance/update", middleware.AuthRequired(handlers.UpdatePerformance))
+	mux.HandleFunc("POST /performance/delete", middleware.AuthRequired(handlers.DeletePerformance))
+
 	mux.HandleFunc("GET /users", middleware.AuthRequired(handlers.ListUsers))
 	mux.HandleFunc("POST /users/create", middleware.AuthRequired(handlers.CreateUser))
 	mux.HandleFunc("POST /users/update", middleware.AuthRequired(handlers.UpdateUser))

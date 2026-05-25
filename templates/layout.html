@@ -12,7 +12,7 @@
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="/static/css/style.css?v=1.2">
+    <link rel="stylesheet" href="/static/css/style.css?v=1.3">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Anti-flicker Theme Script -->
@@ -64,6 +64,10 @@
                 <a href="/trainings" class="menu-item sub-item {{if eq .ActiveTab "trainings"}}active{{end}}">
                     <i class="fa-solid fa-calendar-days"></i>
                     <span>Jadwal Training</span>
+                </a>
+                <a href="/performance" class="menu-item sub-item {{if eq .ActiveTab "performance"}}active{{end}}">
+                    <i class="fa-solid fa-gauge-high"></i>
+                    <span>Peforma App</span>
                 </a>
             </div>
         </nav>

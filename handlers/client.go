@@ -1,10 +1,15 @@
 package handlers
 
 import (
+	"fmt"
+	"io"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"task-manager-go/models"
 )
@@ -31,6 +36,11 @@ func CreateClient(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	err := r.ParseMultipartForm(5 << 20) // 5MB limit
+	if err != nil {
+		log.Printf("Error parsing multipart form: %v", err)
+	}
+
 	name := strings.TrimSpace(r.FormValue("name"))
 	shortName := strings.TrimSpace(r.FormValue("short_name"))
 	email := strings.TrimSpace(r.FormValue("email"))
@@ -43,7 +53,40 @@ func CreateClient(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := models.CreateClient(name, shortName, email, phone, picName, pricePackage)
+	var logoPath string
+	file, fileHeader, err := r.FormFile("logo")
+	if err == nil {
+		defer file.Close()
+		ext := strings.ToLower(filepath.Ext(fileHeader.Filename))
+		allowedExts := map[string]bool{
+			".png": true, ".jpg": true, ".jpeg": true, ".svg": true, ".gif": true, ".webp": true,
+		}
+		if !allowedExts[ext] {
+			http.Redirect(w, r, "/clients?error=Format+logo+tidak+didukung.+Gunakan+PNG,+JPG,+JPEG,+SVG,+GIF,+atau+WEBP", http.StatusSeeOther)
+			return
+		}
+
+		newFilename := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext)
+		savePath := filepath.Join("static", "uploads", "logos", newFilename)
+		
+		dst, err := os.Create(savePath)
+		if err != nil {
+			log.Printf("Error creating logo file: %v", err)
+			http.Redirect(w, r, "/clients?error=Gagal+menyimpan+file+logo", http.StatusSeeOther)
+			return
+		}
+		defer dst.Close()
+
+		_, err = io.Copy(dst, file)
+		if err != nil {
+			log.Printf("Error copying logo content: %v", err)
+			http.Redirect(w, r, "/clients?error=Gagal+menyimpan+file+logo", http.StatusSeeOther)
+			return
+		}
+		logoPath = "/static/uploads/logos/" + newFilename
+	}
+
+	err = models.CreateClient(name, shortName, email, phone, picName, pricePackage, logoPath)
 	if err != nil {
 		log.Printf("Error creating client: %v", err)
 		http.Redirect(w, r, "/clients?error=Gagal+menambahkan+klien", http.StatusSeeOther)
@@ -58,6 +101,11 @@ func UpdateClient(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Redirect(w, r, "/clients", http.StatusSeeOther)
 		return
+	}
+
+	err := r.ParseMultipartForm(5 << 20)
+	if err != nil {
+		log.Printf("Error parsing multipart form: %v", err)
 	}
 
 	idStr := r.FormValue("id")
@@ -79,7 +127,47 @@ func UpdateClient(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = models.UpdateClient(id, name, shortName, email, phone, picName, pricePackage)
+	// Fetch existing client to preserve old logo if no new file is uploaded
+	existingClient, err := models.GetClientByID(id)
+	if err != nil || existingClient == nil {
+		http.Redirect(w, r, "/clients?error=Klien+tidak+ditemukan", http.StatusSeeOther)
+		return
+	}
+	logoPath := existingClient.Logo
+
+	file, fileHeader, err := r.FormFile("logo")
+	if err == nil {
+		defer file.Close()
+		ext := strings.ToLower(filepath.Ext(fileHeader.Filename))
+		allowedExts := map[string]bool{
+			".png": true, ".jpg": true, ".jpeg": true, ".svg": true, ".gif": true, ".webp": true,
+		}
+		if !allowedExts[ext] {
+			http.Redirect(w, r, "/clients?error=Format+logo+tidak+didukung.+Gunakan+PNG,+JPG,+JPEG,+SVG,+GIF,+atau+WEBP", http.StatusSeeOther)
+			return
+		}
+
+		newFilename := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext)
+		savePath := filepath.Join("static", "uploads", "logos", newFilename)
+		
+		dst, err := os.Create(savePath)
+		if err != nil {
+			log.Printf("Error creating logo file: %v", err)
+			http.Redirect(w, r, "/clients?error=Gagal+menyimpan+file+logo", http.StatusSeeOther)
+			return
+		}
+		defer dst.Close()
+
+		_, err = io.Copy(dst, file)
+		if err != nil {
+			log.Printf("Error copying logo content: %v", err)
+			http.Redirect(w, r, "/clients?error=Gagal+menyimpan+file+logo", http.StatusSeeOther)
+			return
+		}
+		logoPath = "/static/uploads/logos/" + newFilename
+	}
+
+	err = models.UpdateClient(id, name, shortName, email, phone, picName, pricePackage, logoPath)
 	if err != nil {
 		log.Printf("Error updating client: %v", err)
 		http.Redirect(w, r, "/clients?error=Gagal+memperbarui+klien", http.StatusSeeOther)

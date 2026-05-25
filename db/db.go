@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"os"
 	"strings"
 	"time"
 
@@ -286,4 +287,60 @@ func runMigrations() {
 		}
 		log.Println("Database migration completed: short_name column added to clients table")
 	}
+
+	// Check if logo column exists in clients table
+	var logoCount int
+	checkLogoQuery := `SELECT COUNT(*) FROM information_schema.COLUMNS 
+	                   WHERE TABLE_SCHEMA = DATABASE() 
+	                   AND TABLE_NAME = 'clients' 
+	                   AND COLUMN_NAME = 'logo'`
+	err = DB.QueryRow(checkLogoQuery).Scan(&logoCount)
+	if err == nil && logoCount == 0 {
+		log.Println("Migrating clients table: adding logo column")
+		_, err = DB.Exec("ALTER TABLE clients ADD COLUMN logo VARCHAR(255) NULL")
+		if err != nil {
+			log.Fatalf("Error adding logo column to clients table: %v", err)
+		}
+		log.Println("Database migration completed: logo column added to clients table")
+	}
+
+	// Ensure uploads directory exists for logos
+	err = os.MkdirAll("static/uploads/logos", 0755)
+	if err != nil {
+		log.Fatalf("Error creating logo uploads directory: %v", err)
+	}
+	log.Println("Directory 'static/uploads/logos' verified/created")
+
+	// Create app_performances table
+	appPerformancesTableQuery := `
+	CREATE TABLE IF NOT EXISTS app_performances (
+		id INT AUTO_INCREMENT PRIMARY KEY,
+		user_id INT NOT NULL,
+		client_id INT NOT NULL,
+		bulan VARCHAR(7) NOT NULL,
+		total_klien INT NOT NULL,
+		total_project INT NOT NULL,
+		total_user INT NOT NULL,
+		total_user_aktif INT NOT NULL,
+		total_absen INT NOT NULL,
+		total_telat INT NOT NULL,
+		tepat_waktu INT NOT NULL,
+		fitur_absensi TINYINT(1) NOT NULL DEFAULT 0,
+		fitur_laporan TINYINT(1) NOT NULL DEFAULT 0,
+		fitur_payroll TINYINT(1) NOT NULL DEFAULT 0,
+		fitur_monitoring TINYINT(1) NOT NULL DEFAULT 0,
+		fitur_payontime TINYINT(1) NOT NULL DEFAULT 0,
+		fitur_paynow TINYINT(1) NOT NULL DEFAULT 0,
+		catatan TEXT,
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+		FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+		FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
+	) ENGINE=InnoDB;`
+
+	_, err = DB.Exec(appPerformancesTableQuery)
+	if err != nil {
+		log.Fatalf("Error creating app_performances table: %v", err)
+	}
+	log.Println("Table 'app_performances' verified/created")
 }

@@ -1,0 +1,999 @@
+{{define "content"}}
+<!-- Include Select2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+<style>
+/* Feature Indicators inside Table */
+.feature-indicators {
+    display: flex;
+    gap: 6px;
+}
+.feature-icon {
+    font-size: 13px;
+    color: var(--text-muted);
+    opacity: 0.35;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    transition: var(--transition-smooth);
+}
+.feature-icon.active {
+    color: var(--color-primary);
+    opacity: 1;
+    border-color: rgba(255, 123, 0, 0.3);
+    background: rgba(255, 123, 0, 0.08);
+}
+
+/* Feature Toggles layout inside Form */
+.features-toggle-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 20px;
+}
+.toggle-control {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.toggle-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+/* Form layouts */
+.form-row {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+.col-third {
+    flex: 1;
+}
+.col-half {
+    flex: 1;
+}
+
+@media (max-width: 768px) {
+    .form-row {
+        flex-direction: column;
+        gap: 12px;
+    }
+    .features-toggle-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Report action button */
+.btn-action-report {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 123, 0, 0.2);
+    background: rgba(255, 123, 0, 0.08);
+    color: #FF7B00;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+.btn-action-report:hover {
+    background: rgba(255, 123, 0, 0.18);
+    border-color: rgba(255, 123, 0, 0.4);
+    transform: translateY(-1px);
+}
+</style>
+
+<div class="tasks-page-header">
+    <div>
+        <p class="section-desc">Pantau dan kelola data peforma aplikasi per bulan untuk masing-masing klien.</p>
+    </div>
+    
+    <button onclick="openAddPerformanceModal()" class="btn btn-primary">
+        <i class="fa-solid fa-plus"></i>
+        <span>Catat Peforma</span>
+    </button>
+</div>
+
+<!-- Filter Section -->
+<div class="filter-row-container">
+    <div class="filter-grid">
+        <div class="filter-input-wrapper search-group">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="searchFilter" placeholder="Cari nama klien, bulan, catatan..." oninput="currentPage = 1; applyFilters()">
+        </div>
+        
+        <div class="filter-select-wrapper">
+            <select id="clientFilter" onchange="applyFilters()">
+                <option value="">Semua Klien</option>
+                {{range .Data.Clients}}
+                <option value="{{.Name}}">{{.Name}}</option>
+                {{end}}
+            </select>
+        </div>
+
+        <div class="filter-input-wrapper date-group" style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 11px; color: var(--text-secondary); white-space: nowrap; font-weight: 500;">Bulan:</span>
+            <input type="month" id="monthFilter" onchange="currentPage = 1; applyFilters()" style="padding: 10px 12px; font-size: 12px; background: rgba(255,255,255,0.04); border: 1px solid var(--border-color); border-radius: 10px; color: var(--text-primary);">
+        </div>
+        
+        <button onclick="resetFilters()" class="btn-reset" title="Hapus Filter">
+            <i class="fa-solid fa-rotate-left"></i>
+        </button>
+    </div>
+</div>
+
+<!-- Table Output Container -->
+{{if not .Data.Performances}}
+<div class="empty-state animate-fade-in" id="emptyStateNoData">
+    <i class="fa-solid fa-gauge-high empty-icon"></i>
+    <h3>Tidak Ada Data Peforma</h3>
+    <p>Belum ada data peforma aplikasi yang tercatat. Mulai buat catatan baru sekarang!</p>
+    <button onclick="openAddPerformanceModal()" class="btn btn-primary btn-sm">Mulai Catat Peforma</button>
+</div>
+{{else}}
+<div class="table-responsive has-pagination" id="tableResponsiveContainer">
+    <table class="premium-table" id="performanceTable">
+        <thead>
+            <tr>
+                <th style="width: 50px;">No.</th>
+                <th>Bulan</th>
+                <th>Klien</th>
+                <th>Statistik Klien & User</th>
+                <th>Statistik Kehadiran</th>
+                <th>Engagement</th>
+                <th>Late Rate</th>
+                <th>Fitur</th>
+                <th>Catatan</th>
+                <th style="width: 150px; text-align: center;">Aksi</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{range .Data.Performances}}
+            <tr data-id="{{.ID}}"
+                data-client-id="{{.ClientID}}"
+                data-client-name="{{.ClientName}}"
+                data-bulan="{{.Bulan}}"
+                data-total-klien="{{.TotalKlien}}"
+                data-total-project="{{.TotalProject}}"
+                data-total-user="{{.TotalUser}}"
+                data-total-user-aktif="{{.TotalUserAktif}}"
+                data-total-absen="{{.TotalAbsen}}"
+                data-total-telat="{{.TotalTelat}}"
+                data-tepat-waktu="{{.TepatWaktu}}"
+                data-fitur-absensi="{{if .FiturAbsensi}}true{{else}}false{{end}}"
+                data-fitur-laporan="{{if .FiturLaporan}}true{{else}}false{{end}}"
+                data-fitur-payroll="{{if .FiturPayroll}}true{{else}}false{{end}}"
+                data-fitur-monitoring="{{if .FiturMonitoring}}true{{else}}false{{end}}"
+                data-fitur-payontime="{{if .FiturPayontime}}true{{else}}false{{end}}"
+                data-fitur-paynow="{{if .FiturPaynow}}true{{else}}false{{end}}"
+                data-catatan="{{.Catatan}}"
+                data-client-logo="{{.ClientLogo}}"
+                data-formatted-bulan="{{.FormattedBulan}}">
+                
+                <td class="row-index" style="font-weight: 600; color: var(--text-muted);"></td>
+                
+                <td>
+                    <span style="font-weight: 600; color: var(--text-primary);">{{.FormattedBulan}}</span>
+                </td>
+                
+                <td>
+                    <span style="font-weight: 500;"><i class="fa-solid fa-user-tie" style="color: var(--color-secondary); margin-right: 4px;"></i> {{.ClientName}}</span>
+                </td>
+                
+                <td>
+                    <ul style="margin: 0; padding-left: 14px; list-style-type: disc; font-size: 12px; line-height: 1.4;">
+                        <li>Klien: <strong style="color: var(--text-primary);">{{.TotalKlien}}</strong></li>
+                        <li>Project: <strong style="color: var(--text-primary);">{{.TotalProject}}</strong></li>
+                        <li>User: <strong style="color: var(--text-primary);">{{.TotalUser}}</strong></li>
+                        <li>Aktif: <strong style="color: var(--text-primary);">{{.TotalUserAktif}}</strong></li>
+                    </ul>
+                </td>
+                
+                <td>
+                    <ul style="margin: 0; padding-left: 14px; list-style-type: disc; font-size: 12px; line-height: 1.4;">
+                        <li>Absen: <strong style="color: var(--text-primary);">{{.TotalAbsen}}</strong></li>
+                        <li>Telat: <strong style="color: var(--text-primary);">{{.TotalTelat}}</strong></li>
+                        <li>Tepat Waktu: <strong style="color: var(--text-primary);">{{.TepatWaktu}}</strong></li>
+                    </ul>
+                </td>
+                
+                <td>
+                    <span class="badge" style="background: rgba(46, 196, 182, 0.12); color: var(--status-completed); border: 1px solid rgba(46, 196, 182, 0.15);">
+                        {{.FormattedEngagementRate}}
+                    </span>
+                </td>
+                <td>
+                    <span class="badge" style="background: rgba(255, 77, 109, 0.12); color: var(--status-pending); border: 1px solid rgba(255, 77, 109, 0.15);">
+                        {{.FormattedLateRate}}
+                    </span>
+                </td>
+                
+                <td>
+                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                        <div style="display: flex; gap: 4px;">
+                            <span class="feature-icon {{if .FiturAbsensi}}active{{end}}" title="Absensi"><i class="fa-solid fa-fingerprint"></i></span>
+                            <span class="feature-icon {{if .FiturLaporan}}active{{end}}" title="Laporan"><i class="fa-solid fa-file-lines"></i></span>
+                            <span class="feature-icon {{if .FiturPayroll}}active{{end}}" title="Payroll"><i class="fa-solid fa-money-bill-wave"></i></span>
+                        </div>
+                        <div style="display: flex; gap: 4px;">
+                            <span class="feature-icon {{if .FiturMonitoring}}active{{end}}" title="Monitoring"><i class="fa-solid fa-desktop"></i></span>
+                            <span class="feature-icon {{if .FiturPayontime}}active{{end}}" title="Payontime"><i class="fa-solid fa-clock-rotate-left"></i></span>
+                            <span class="feature-icon {{if .FiturPaynow}}active{{end}}" title="Paynow"><i class="fa-solid fa-wallet"></i></span>
+                        </div>
+                    </div>
+                </td>
+                
+                <td>
+                    {{if .Catatan}}
+                    <span style="font-size: 12px; color: var(--text-muted); display: block; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{.Catatan}}">
+                        {{.Catatan}}
+                    </span>
+                    {{else}}
+                    <span style="color: var(--text-muted); font-style: italic; font-size: 12px;">-</span>
+                    {{end}}
+                </td>
+                
+                <td>
+                    <div class="table-actions" style="justify-content: center;">
+                        <button class="btn-action-report" title="Generate Laporan PDF" onclick="generateReport(this)">
+                            <i class="fa-solid fa-file-pdf"></i>
+                        </button>
+                        <button class="btn-action-edit" title="Edit Peforma"
+                                data-id="{{.ID}}"
+                                data-client-id="{{.ClientID}}"
+                                data-bulan="{{.Bulan}}"
+                                data-total-klien="{{.TotalKlien}}"
+                                data-total-project="{{.TotalProject}}"
+                                data-total-user="{{.TotalUser}}"
+                                data-total-user-aktif="{{.TotalUserAktif}}"
+                                data-total-absen="{{.TotalAbsen}}"
+                                data-total-telat="{{.TotalTelat}}"
+                                data-tepat-waktu="{{.TepatWaktu}}"
+                                data-fitur-absensi="{{if .FiturAbsensi}}true{{else}}false{{end}}"
+                                data-fitur-laporan="{{if .FiturLaporan}}true{{else}}false{{end}}"
+                                data-fitur-payroll="{{if .FiturPayroll}}true{{else}}false{{end}}"
+                                data-fitur-monitoring="{{if .FiturMonitoring}}true{{else}}false{{end}}"
+                                data-fitur-payontime="{{if .FiturPayontime}}true{{else}}false{{end}}"
+                                data-fitur-paynow="{{if .FiturPaynow}}true{{else}}false{{end}}"
+                                data-catatan="{{.Catatan}}"
+                                onclick="openEditPerformanceModal(this)">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </button>
+                        
+                        <form action="/performance/delete" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus data peforma ini?')" style="display:inline;">
+                            <input type="hidden" name="id" value="{{.ID}}">
+                            <button type="submit" class="btn-action-delete" title="Hapus Peforma">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
+</div>
+
+<div class="empty-state animate-fade-in" id="tableEmptyState" style="display: none;">
+    <i class="fa-solid fa-magnifying-glass empty-icon"></i>
+    <h3>Tidak Ditemukan</h3>
+    <p>Data peforma tidak cocok dengan filter pencarian Anda.</p>
+    <button onclick="resetFilters()" class="btn btn-secondary btn-sm">Reset Filter</button>
+</div>
+
+<!-- Pagination Controls -->
+<div class="pagination-container" id="paginationContainer" style="display: none;">
+    <div class="pagination-info" id="paginationInfo">Menampilkan 0-0 dari 0 data</div>
+    <div class="pagination-nav" id="paginationNav"></div>
+</div>
+{{end}}
+
+<!-- Unified Performance Modal (Create & Edit) -->
+<div id="performanceModal" class="modal">
+    <div class="modal-content animate-slide-in" style="max-width: 650px;">
+        <div class="modal-header">
+            <h3 id="performanceModalTitle">Catat Peforma App</h3>
+            <span class="close-modal" onclick="closePerformanceModal()">&times;</span>
+        </div>
+        <form id="performanceForm" action="/performance/create" method="POST">
+            <input type="hidden" id="perfID" name="id">
+            
+            <div class="form-row">
+                <div class="form-group col-half">
+                    <label for="perfClientID">Klien</label>
+                    <select id="perfClientID" name="client_id" required style="width: 100%;">
+                        <option value="">Pilih Klien...</option>
+                        {{range .Data.Clients}}
+                        <option value="{{.ID}}">{{.Name}}</option>
+                        {{end}}
+                    </select>
+                </div>
+                <div class="form-group col-half">
+                    <label for="perfBulan">Bulan (Bulan Tahun)</label>
+                    <input type="month" id="perfBulan" name="bulan" required>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group col-third">
+                    <label for="perfTotalKlien">Total Klien</label>
+                    <input type="number" id="perfTotalKlien" name="total_klien" required min="0" placeholder="0">
+                </div>
+                <div class="form-group col-third">
+                    <label for="perfTotalProject">Total Project</label>
+                    <input type="number" id="perfTotalProject" name="total_project" required min="0" placeholder="0">
+                </div>
+                <div class="form-group col-third">
+                    <label for="perfTotalUser">Total User</label>
+                    <input type="number" id="perfTotalUser" name="total_user" required min="0" placeholder="0">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group col-half">
+                    <label for="perfTotalUserAktif">Total User Aktif</label>
+                    <input type="number" id="perfTotalUserAktif" name="total_user_aktif" required min="0" placeholder="0">
+                </div>
+                <div class="form-group col-half">
+                    <label for="perfTotalAbsen">Total Absen</label>
+                    <input type="number" id="perfTotalAbsen" name="total_absen" required min="0" placeholder="0">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group col-half">
+                    <label for="perfTotalTelat">Total Telat</label>
+                    <input type="number" id="perfTotalTelat" name="total_telat" required min="0" placeholder="0">
+                </div>
+                <div class="form-group col-half">
+                    <label for="perfTepatWaktu">Tepat Waktu</label>
+                    <input type="number" id="perfTepatWaktu" name="tepat_waktu" required min="0" placeholder="0">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Penggunaan Fitur</label>
+                <div class="features-toggle-grid">
+                    <div class="toggle-control">
+                        <label class="switch">
+                            <input type="checkbox" id="perfFiturAbsensi" name="fitur_absensi">
+                            <span class="slider"></span>
+                        </label>
+                        <span class="toggle-label"><i class="fa-solid fa-fingerprint" style="margin-right: 4px; color: var(--color-primary);"></i> Absensi</span>
+                    </div>
+                    <div class="toggle-control">
+                        <label class="switch">
+                            <input type="checkbox" id="perfFiturLaporan" name="fitur_laporan">
+                            <span class="slider"></span>
+                        </label>
+                        <span class="toggle-label"><i class="fa-solid fa-file-lines" style="margin-right: 4px; color: var(--color-primary);"></i> Laporan</span>
+                    </div>
+                    <div class="toggle-control">
+                        <label class="switch">
+                            <input type="checkbox" id="perfFiturPayroll" name="fitur_payroll">
+                            <span class="slider"></span>
+                        </label>
+                        <span class="toggle-label"><i class="fa-solid fa-money-bill-wave" style="margin-right: 4px; color: var(--color-primary);"></i> Payroll</span>
+                    </div>
+                    <div class="toggle-control">
+                        <label class="switch">
+                            <input type="checkbox" id="perfFiturMonitoring" name="fitur_monitoring">
+                            <span class="slider"></span>
+                        </label>
+                        <span class="toggle-label"><i class="fa-solid fa-desktop" style="margin-right: 4px; color: var(--color-primary);"></i> Monitoring</span>
+                    </div>
+                    <div class="toggle-control">
+                        <label class="switch">
+                            <input type="checkbox" id="perfFiturPayontime" name="fitur_payontime">
+                            <span class="slider"></span>
+                        </label>
+                        <span class="toggle-label"><i class="fa-solid fa-clock-rotate-left" style="margin-right: 4px; color: var(--color-primary);"></i> Payontime</span>
+                    </div>
+                    <div class="toggle-control">
+                        <label class="switch">
+                            <input type="checkbox" id="perfFiturPaynow" name="fitur_paynow">
+                            <span class="slider"></span>
+                        </label>
+                        <span class="toggle-label"><i class="fa-solid fa-wallet" style="margin-right: 4px; color: var(--color-primary);"></i> Paynow</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="perfCatatan">Catatan</label>
+                <textarea id="perfCatatan" name="catatan" rows="3" placeholder="Masukkan catatan atau keterangan tambahan..."></textarea>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closePerformanceModal()">Batal</button>
+                <button type="submit" class="btn btn-primary">Simpan</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Include jQuery & Select2 JS -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="/static/js/jspdf.umd.min.js"></script>
+
+<script>
+    // Client-side pagination variables
+    let currentPage = 1;
+    const pageSize = 10;
+
+    $(document).ready(function() {
+        // Initialize Select2 on Client Dropdown in Modal
+        $('#perfClientID').select2({
+            dropdownParent: $('#performanceModal'),
+            placeholder: "Pilih Klien...",
+            allowClear: true
+        });
+
+        // Initialize table list display
+        applyFilters();
+    });
+
+    function openAddPerformanceModal() {
+        const modal = document.getElementById('performanceModal');
+        const modalTitle = document.getElementById('performanceModalTitle');
+        const form = document.getElementById('performanceForm');
+        const perfID = document.getElementById('perfID');
+
+        if (!modal) return;
+
+        modalTitle.textContent = "Catat Peforma App";
+        form.action = "/performance/create";
+        perfID.value = "";
+        form.reset();
+
+        // Clear select2
+        $('#perfClientID').val('').trigger('change');
+        
+        modal.style.display = "flex";
+    }
+
+    function openEditPerformanceModal(btn) {
+        const modal = document.getElementById('performanceModal');
+        const modalTitle = document.getElementById('performanceModalTitle');
+        const form = document.getElementById('performanceForm');
+        
+        const perfID = document.getElementById('perfID');
+        const perfClientID = document.getElementById('perfClientID');
+        const perfBulan = document.getElementById('perfBulan');
+        const perfTotalKlien = document.getElementById('perfTotalKlien');
+        const perfTotalProject = document.getElementById('perfTotalProject');
+        const perfTotalUser = document.getElementById('perfTotalUser');
+        const perfTotalUserAktif = document.getElementById('perfTotalUserAktif');
+        const perfTotalAbsen = document.getElementById('perfTotalAbsen');
+        const perfTotalTelat = document.getElementById('perfTotalTelat');
+        const perfTepatWaktu = document.getElementById('perfTepatWaktu');
+        
+        const perfFiturAbsensi = document.getElementById('perfFiturAbsensi');
+        const perfFiturLaporan = document.getElementById('perfFiturLaporan');
+        const perfFiturPayroll = document.getElementById('perfFiturPayroll');
+        const perfFiturMonitoring = document.getElementById('perfFiturMonitoring');
+        const perfFiturPayontime = document.getElementById('perfFiturPayontime');
+        const perfFiturPaynow = document.getElementById('perfFiturPaynow');
+        const perfCatatan = document.getElementById('perfCatatan');
+
+        if (!modal) return;
+
+        modalTitle.textContent = "Edit Data Peforma App";
+        form.action = "/performance/update";
+
+        perfID.value = btn.getAttribute('data-id') || "";
+        perfBulan.value = btn.getAttribute('data-bulan') || "";
+        perfTotalKlien.value = btn.getAttribute('data-total-klien') || "0";
+        perfTotalProject.value = btn.getAttribute('data-total-project') || "0";
+        perfTotalUser.value = btn.getAttribute('data-total-user') || "0";
+        perfTotalUserAktif.value = btn.getAttribute('data-total-user-aktif') || "0";
+        perfTotalAbsen.value = btn.getAttribute('data-total-absen') || "0";
+        perfTotalTelat.value = btn.getAttribute('data-total-telat') || "0";
+        perfTepatWaktu.value = btn.getAttribute('data-tepat-waktu') || "0";
+        
+        perfFiturAbsensi.checked = btn.getAttribute('data-fitur-absensi') === "true";
+        perfFiturLaporan.checked = btn.getAttribute('data-fitur-laporan') === "true";
+        perfFiturPayroll.checked = btn.getAttribute('data-fitur-payroll') === "true";
+        perfFiturMonitoring.checked = btn.getAttribute('data-fitur-monitoring') === "true";
+        perfFiturPayontime.checked = btn.getAttribute('data-fitur-payontime') === "true";
+        perfFiturPaynow.checked = btn.getAttribute('data-fitur-paynow') === "true";
+        
+        perfCatatan.value = btn.getAttribute('data-catatan') || "";
+
+        // Trigger select2 value update
+        const cID = btn.getAttribute('data-client-id') || "";
+        $('#perfClientID').val(cID).trigger('change');
+
+        modal.style.display = "flex";
+    }
+
+    function closePerformanceModal() {
+        const modal = document.getElementById('performanceModal');
+        if (modal) {
+            modal.style.display = "none";
+        }
+    }
+
+    // Dismiss modal on background click
+    window.addEventListener('click', function(event) {
+        const modal = document.getElementById('performanceModal');
+        if (event.target === modal) {
+            closePerformanceModal();
+        }
+    });
+
+    // Client-side search and filtering implementation
+    function applyFilters() {
+        const searchQuery = document.getElementById('searchFilter').value.toLowerCase().trim();
+        const clientFilter = document.getElementById('clientFilter').value;
+        const monthFilter = document.getElementById('monthFilter').value; // YYYY-MM
+
+        const tableBody = document.querySelector('#performanceTable tbody');
+        if (!tableBody) return;
+        
+        const rows = Array.from(tableBody.querySelectorAll('tr'));
+        let matchedRows = [];
+
+        rows.forEach(row => {
+            const clientName = row.getAttribute('data-client-name') || '';
+            const bulan = row.getAttribute('data-bulan') || ''; // YYYY-MM
+            const catatan = row.getAttribute('data-catatan') || '';
+
+            const matchesSearch = searchQuery === '' || 
+                                  clientName.toLowerCase().includes(searchQuery) ||
+                                  bulan.includes(searchQuery) ||
+                                  catatan.toLowerCase().includes(searchQuery);
+
+            const matchesClient = clientFilter === '' || clientName === clientFilter;
+            const matchesMonth = monthFilter === '' || bulan === monthFilter;
+
+            if (matchesSearch && matchesClient && matchesMonth) {
+                matchedRows.push(row);
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        const totalRows = matchedRows.length;
+        const totalPages = Math.ceil(totalRows / pageSize) || 1;
+
+        if (currentPage > totalPages) currentPage = totalPages;
+        if (currentPage < 1) currentPage = 1;
+
+        const startIndex = (currentPage - 1) * pageSize;
+        const endIndex = Math.min(startIndex + pageSize, totalRows);
+
+        matchedRows.forEach((row, idx) => {
+            if (idx >= startIndex && idx < endIndex) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+            row.querySelector('.row-index').textContent = idx + 1;
+        });
+
+        const paginationContainer = document.getElementById('paginationContainer');
+        if (totalRows > 0) {
+            paginationContainer.style.display = 'flex';
+            document.getElementById('paginationInfo').textContent = 
+                `Menampilkan ${totalRows > 0 ? startIndex + 1 : 0}-${endIndex} dari ${totalRows} data`;
+            
+            const navEl = document.getElementById('paginationNav');
+            let navHtml = '';
+            
+            navHtml += `<button class="pagination-btn" ${currentPage === 1 ? 'disabled' : ''} onclick="changePage(${currentPage - 1})"><i class="fa-solid fa-angle-left"></i></button>`;
+            
+            const maxVisiblePages = 5;
+            let startPage = Math.max(1, currentPage - 2);
+            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+            if (endPage - startPage < maxVisiblePages - 1) {
+                startPage = Math.max(1, endPage - maxVisiblePages + 1);
+            }
+            
+            if (startPage > 1) {
+                navHtml += `<button class="pagination-btn" onclick="changePage(1)">1</button>`;
+                if (startPage > 2) {
+                    navHtml += `<span style="color: var(--text-muted); display: inline-flex; align-items: center; padding: 0 4px;">...</span>`;
+                }
+            }
+            
+            for (let p = startPage; p <= endPage; p++) {
+                navHtml += `<button class="pagination-btn ${p === currentPage ? 'active' : ''}" onclick="changePage(${p})">${p}</button>`;
+            }
+            
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    navHtml += `<span style="color: var(--text-muted); display: inline-flex; align-items: center; padding: 0 4px;">...</span>`;
+                }
+                navHtml += `<button class="pagination-btn" onclick="changePage(${totalPages})">${totalPages}</button>`;
+            }
+            
+            navHtml += `<button class="pagination-btn" ${currentPage === totalPages ? 'disabled' : ''} onclick="changePage(${currentPage + 1})"><i class="fa-solid fa-angle-right"></i></button>`;
+            
+            navEl.innerHTML = navHtml;
+        } else {
+            paginationContainer.style.display = 'none';
+        }
+
+        const emptyState = document.getElementById('tableEmptyState');
+        const tableContainer = document.getElementById('tableResponsiveContainer');
+
+        if (totalRows === 0) {
+            if (emptyState) emptyState.style.display = 'flex';
+            if (tableContainer) tableContainer.style.display = 'none';
+        } else {
+            if (emptyState) emptyState.style.display = 'none';
+            if (tableContainer) tableContainer.style.display = 'block';
+        }
+    }
+
+    function changePage(p) {
+        currentPage = p;
+        applyFilters();
+        const tableEl = document.getElementById('tableResponsiveContainer');
+        if (tableEl) {
+            tableEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    }
+
+    function resetFilters() {
+        document.getElementById('searchFilter').value = '';
+        document.getElementById('monthFilter').value = '';
+        document.getElementById('clientFilter').value = '';
+        currentPage = 1;
+        applyFilters();
+    }
+</script>
+
+<script>
+    // ============ PDF Report Generation ============
+
+    function loadImageAsDataUrl(src) {
+        return new Promise(function(resolve, reject) {
+            var img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = function() {
+                var c = document.createElement('canvas');
+                c.width = img.naturalWidth;
+                c.height = img.naturalHeight;
+                c.getContext('2d').drawImage(img, 0, 0);
+                resolve(c.toDataURL('image/png'));
+            };
+            img.onerror = reject;
+            img.src = src;
+        });
+    }
+
+    function fmtNum(n) {
+        return Number(n).toLocaleString('id-ID');
+    }
+
+    function pdfSectionHeader(doc, title, x, y, w) {
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(51, 51, 51);
+        doc.text(title, x, y);
+        var tw = doc.getTextWidth(title);
+        doc.setDrawColor(255, 123, 0);
+        doc.setLineWidth(1.8);
+        doc.line(x + tw + 4, y - 2, x + w, y - 2);
+    }
+
+    function renderDonutCanvas(activeUser, totalUser, engRate) {
+        var cvs = document.createElement('canvas');
+        cvs.width = 600; cvs.height = 320;
+        var ctx = cvs.getContext('2d');
+        var cx = 145, cy = 160, outerR = 115, innerR = 75;
+
+        // Background ring
+        ctx.beginPath();
+        ctx.arc(cx, cy, outerR, 0, Math.PI * 2);
+        ctx.arc(cx, cy, innerR, Math.PI * 2, 0, true);
+        ctx.closePath();
+        ctx.fillStyle = '#D0D0DA';
+        ctx.fill();
+
+        // Filled arc (navy)
+        var ratio = Math.min(engRate / 100, 1);
+        var startA = -Math.PI / 2;
+        var endA = startA + ratio * Math.PI * 2;
+        ctx.beginPath();
+        ctx.arc(cx, cy, outerR, startA, endA);
+        ctx.arc(cx, cy, innerR, endA, startA, true);
+        ctx.closePath();
+        ctx.fillStyle = '#1B3A5C';
+        ctx.fill();
+
+        // Orange accent ring
+        var midR = (outerR + innerR) / 2;
+        ctx.beginPath();
+        ctx.arc(cx, cy, midR, startA, endA);
+        ctx.strokeStyle = '#FF7B00';
+        ctx.lineWidth = 4;
+        ctx.stroke();
+
+        // Center label
+        ctx.fillStyle = '#999';
+        ctx.font = '13px Helvetica, Arial, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('active_user', cx, cy - 20);
+        ctx.fillStyle = '#1B3A5C';
+        ctx.font = 'bold 36px Helvetica, Arial, sans-serif';
+        ctx.fillText(fmtNum(activeUser), cx, cy + 16);
+
+        // Right-side stats
+        var sx = 330;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'alphabetic';
+        ctx.fillStyle = '#999';
+        ctx.font = '13px Helvetica, Arial, sans-serif';
+        ctx.fillText('total_user', sx, 80);
+        ctx.fillStyle = '#333';
+        ctx.font = 'bold 40px Helvetica, Arial, sans-serif';
+        ctx.fillText(fmtNum(totalUser), sx, 120);
+
+        ctx.fillStyle = '#999';
+        ctx.font = '13px Helvetica, Arial, sans-serif';
+        ctx.fillText('engagement_rate', sx, 180);
+        ctx.fillStyle = '#333';
+        ctx.font = 'bold 40px Helvetica, Arial, sans-serif';
+        ctx.fillText(engRate.toFixed(0) + '%', sx, 220);
+
+        return cvs;
+    }
+
+    function renderBarCanvas(totalAbsen, tepatWaktu, telat, lateRate) {
+        var cvs = document.createElement('canvas');
+        cvs.width = 620; cvs.height = 400;
+        var ctx = cvs.getContext('2d');
+        var cL = 55, cR = 430, cT = 40, cB = 270;
+        var cH = cB - cT, cW = cR - cL;
+
+        // Legend
+        ctx.fillStyle = '#FF7B00';
+        ctx.fillRect(cL, 12, 14, 10);
+        ctx.fillStyle = '#666';
+        ctx.font = '11px Helvetica, Arial, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText('tepat_waktu', cL + 20, 21);
+        ctx.fillStyle = '#1B3A5C';
+        ctx.fillRect(cL + 115, 12, 14, 10);
+        ctx.fillStyle = '#666';
+        ctx.fillText('telat', cL + 135, 21);
+
+        // Y-axis scale
+        var yMax = Math.max(tepatWaktu, telat, 100);
+        var nice = Math.ceil(yMax / 2000) * 2000 + 2000;
+        ctx.strokeStyle = '#E5E5E5';
+        ctx.lineWidth = 0.5;
+        ctx.fillStyle = '#999';
+        ctx.font = '11px Helvetica, Arial, sans-serif';
+        ctx.textAlign = 'right';
+        for (var v = 0; v <= nice; v += 2000) {
+            var y = cB - (v / nice) * cH;
+            ctx.beginPath(); ctx.moveTo(cL, y); ctx.lineTo(cR, y); ctx.stroke();
+            ctx.fillText(v >= 1000 ? (v / 1000) + 'K' : '' + v, cL - 6, y + 4);
+        }
+
+        // Bars
+        var bw = 75, gap = 35;
+        var bStart = cL + (cW - 2 * bw - gap) / 2;
+        var h1 = (tepatWaktu / nice) * cH;
+        ctx.fillStyle = '#FF7B00';
+        ctx.fillRect(bStart, cB - h1, bw, h1);
+
+        var h2 = (telat / nice) * cH;
+        ctx.fillStyle = '#1B3A5C';
+        ctx.fillRect(bStart + bw + gap, cB - h2, bw, h2);
+
+        // X-axis values under bars
+        ctx.fillStyle = '#555';
+        ctx.font = '11px Helvetica, Arial, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(fmtNum(tepatWaktu), bStart + bw / 2, cB + 16);
+        ctx.fillText(fmtNum(telat), bStart + bw + gap + bw / 2, cB + 16);
+
+        // Bottom stats row
+        var sY = cB + 48;
+        var labels = ['total_absen', 'tepat_waktu', 'telat', 'late_rate'];
+        var vals = [fmtNum(totalAbsen), fmtNum(tepatWaktu), fmtNum(telat), lateRate.toFixed(0) + '%'];
+        var sw = cW / 4;
+        labels.forEach(function(l, i) {
+            var x = cL + i * sw + sw / 2;
+            ctx.fillStyle = '#999';
+            ctx.font = '10px Helvetica, Arial, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(l, x, sY);
+            ctx.fillStyle = '#333';
+            ctx.font = 'bold 22px Helvetica, Arial, sans-serif';
+            ctx.fillText(vals[i], x, sY + 24);
+        });
+
+        return cvs;
+    }
+
+    async function generateReport(btn) {
+        try {
+            var row = btn.closest('tr');
+            if (!row) return;
+
+            var g = function(attr) { return row.getAttribute('data-' + attr) || ''; };
+            var gi = function(attr) { return parseInt(g(attr)) || 0; };
+
+            var clientName = g('client-name');
+            var clientLogo = g('client-logo');
+            var formattedBulan = g('formatted-bulan');
+            var totalUser = gi('total-user');
+            var totalUserAktif = gi('total-user-aktif');
+            var totalAbsen = gi('total-absen');
+            var totalTelat = gi('total-telat');
+            var tepatWaktu = gi('tepat-waktu');
+            var catatan = g('catatan');
+
+            var features = {
+                'Absensi': g('fitur-absensi') === 'true',
+                'Laporan': g('fitur-laporan') === 'true',
+                'Payroll': g('fitur-payroll') === 'true',
+                'Monitoring': g('fitur-monitoring') === 'true',
+                'PayNow': g('fitur-paynow') === 'true',
+                'PayOnTime': g('fitur-payontime') === 'true'
+            };
+
+            var engRate = totalUser > 0 ? (totalUserAktif / totalUser * 100) : 0;
+            var lateRate = totalAbsen > 0 ? (totalTelat / totalAbsen * 100) : 0;
+
+            // Load client logo
+            var logoData = null;
+            if (clientLogo) {
+                try { 
+                    logoData = await loadImageAsDataUrl(clientLogo); 
+                } catch(e) { 
+                    console.warn("Failed to load client logo: ", e);
+                }
+            }
+
+            var jsPDFClass = null;
+            if (window.jspdf && window.jspdf.jsPDF) {
+                jsPDFClass = window.jspdf.jsPDF;
+            } else if (window.jsPDF) {
+                jsPDFClass = window.jsPDF;
+            }
+
+            if (!jsPDFClass) {
+                alert("Library PDF (jsPDF) belum termuat. Harap periksa koneksi internet Anda atau coba muat ulang halaman.");
+                return;
+            }
+
+            var doc = new jsPDFClass('landscape', 'mm', 'a4');
+            var W = 297, H = 210, M = 15;
+            var colW = (W - 2 * M - 12) / 2;
+            var rightX = M + colW + 12;
+
+            // ===== HEADER =====
+            doc.setFontSize(16);
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(51, 51, 51);
+            var t1 = 'Laporan Peforma ';
+            doc.text(t1, M, 20);
+            var cx = M + doc.getTextWidth(t1);
+
+            doc.setTextColor(255, 123, 0);
+            doc.setFont('helvetica', 'bold');
+            var t2 = 'Madoo';
+            doc.text(t2, cx, 20);
+            cx += doc.getTextWidth(t2);
+
+            doc.setTextColor(51, 51, 51);
+            doc.setFont('helvetica', 'normal');
+            doc.text(' - ' + clientName + ' (periode ' + formattedBulan + ')', cx, 20);
+
+            // Client logo (top-right with margin)
+            if (logoData) {
+                try { doc.addImage(logoData, 'PNG', W - M - 18, 10, 18, 18); } catch(e) {}
+            }
+
+            // ===== PENGGUNA (Top Left) =====
+            var secY1 = 38;
+            pdfSectionHeader(doc, 'Pengguna', M, secY1, colW);
+            var donutCvs = renderDonutCanvas(totalUserAktif, totalUser, engRate);
+            doc.addImage(donutCvs.toDataURL('image/png'), 'PNG', M, secY1 + 5, colW, 60);
+
+            // ===== FITUR (Top Right) =====
+            pdfSectionHeader(doc, 'Fitur', rightX, secY1, colW);
+            var fEntries = Object.entries(features);
+            var fColW = colW / 2;
+            fEntries.forEach(function(entry, i) {
+                var name = entry[0], isOn = entry[1];
+                var col = i % 2;
+                var rowIdx = Math.floor(i / 2);
+                var fx = rightX + col * fColW + 5;
+                var fy = secY1 + 13 + rowIdx * 16;
+
+                doc.setFontSize(11);
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(51, 51, 51);
+                doc.text(name, fx, fy);
+
+                var bx = fx + fColW - 38;
+                var by = fy - 5.5;
+                var bw = 32, bh = 9;
+                if (isOn) {
+                    doc.setFillColor(46, 125, 50);
+                    doc.roundedRect(bx, by, bw, bh, 4, 4, 'F');
+                    doc.setFontSize(7);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setTextColor(255, 255, 255);
+                    doc.text('ON', bx + 9, by + bh / 2 + 1.2);
+                    doc.setFillColor(255, 255, 255);
+                    doc.circle(bx + bw - 5.5, by + bh / 2, 3, 'F');
+                } else {
+                    doc.setFillColor(211, 47, 47);
+                    doc.roundedRect(bx, by, bw, bh, 4, 4, 'F');
+                    doc.setFontSize(7);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setTextColor(255, 255, 255);
+                    doc.text('OFF', bx + 14, by + bh / 2 + 1.2);
+                    doc.setFillColor(255, 255, 255);
+                    doc.circle(bx + 5.5, by + bh / 2, 3, 'F');
+                }
+            });
+
+            // ===== KEHADIRAN (Bottom Left) =====
+            var secY2 = 110;
+            pdfSectionHeader(doc, 'Kehadiran', M, secY2, colW);
+            var barCvs = renderBarCanvas(totalAbsen, tepatWaktu, totalTelat, lateRate);
+            doc.addImage(barCvs.toDataURL('image/png'), 'PNG', M, secY2 + 5, colW, 80);
+
+            // ===== CATATAN (Bottom Right) =====
+            pdfSectionHeader(doc, 'Catatan', rightX, secY2, colW);
+            if (catatan && catatan.trim()) {
+                var tW = colW - 10;
+                doc.setFontSize(9);
+                doc.setFont('helvetica', 'italic');
+                
+                // Get all lines for the entire catatan text
+                var cleanCatatan = catatan.trim();
+                var lines = doc.splitTextToSize(cleanCatatan, tW - 8);
+                var blockH = lines.length * 4.8 + 6;
+                
+                // Draw a single background box
+                doc.setFillColor(186, 220, 240);
+                doc.roundedRect(rightX + 4, secY2 + 11, tW, blockH, 2, 2, 'F');
+                
+                // Print all lines
+                doc.setTextColor(27, 58, 92);
+                lines.forEach(function(ln, li) {
+                    doc.text(ln, rightX + 8, secY2 + 16 + li * 4.8);
+                });
+            } else {
+                doc.setFontSize(10);
+                doc.setTextColor(150, 150, 150);
+                doc.setFont('helvetica', 'italic');
+                doc.text('Tidak ada catatan.', rightX + 5, secY2 + 17);
+            }
+
+            // Save PDF
+            var safeName = clientName.replace(/[^a-zA-Z0-9]/g, '_');
+            var safeBulan = formattedBulan.replace(/\s+/g, '_');
+            doc.save('Laporan_Peforma_' + safeName + '_' + safeBulan + '.pdf');
+        } catch (error) {
+            console.error("Error generating PDF report:", error);
+            alert("Gagal membuat PDF: " + error.message);
+        }
+    }
+</script>
+{{end}}
