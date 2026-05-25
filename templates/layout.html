@@ -55,13 +55,12 @@
                 </a>
             </div>
             
-            <a href="/tasks" class="menu-item {{if eq .ActiveTab "tasks"}}active{{end}}">
-                <i class="fa-solid fa-list-check"></i>
-                <span>Daftar Tugas</span>
-            </a>
-            
             <div class="menu-category">
-                <span class="category-title">Training</span>
+                <span class="category-title">Toolkit</span>
+                <a href="/tasks" class="menu-item sub-item {{if eq .ActiveTab "tasks"}}active{{end}}">
+                    <i class="fa-solid fa-list-check"></i>
+                    <span>Daftar Tugas</span>
+                </a>
                 <a href="/trainings" class="menu-item sub-item {{if eq .ActiveTab "trainings"}}active{{end}}">
                     <i class="fa-solid fa-calendar-days"></i>
                     <span>Jadwal Training</span>
