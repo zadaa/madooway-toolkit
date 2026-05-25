@@ -450,10 +450,12 @@
             width: '100%'
         }).on('change', function() {
             updateDashboard();
-        });
-
         // Trigger update to synchronize with initial data calculations
         updateDashboard();
+
+        // Listen to theme changes to dynamically update Chart colors
+        window.addEventListener('themeChanged', updateChartTheme);
+        updateChartTheme();
     });
 
     // Filtering & KPI/Chart updates handler
@@ -644,6 +646,47 @@
         document.getElementById('startDateFilter').value = '';
         document.getElementById('endDateFilter').value = '';
         updateDashboard();
+    }
+
+    function updateChartTheme() {
+        const isLight = document.documentElement.classList.contains('light-mode');
+        const labelColor = isLight ? '#475569' : '#9ca3af';
+        const gridColor = isLight ? 'rgba(15, 23, 42, 0.06)' : 'rgba(156, 163, 175, 0.08)';
+        const doughnutBorder = isLight ? '#ffffff' : '#111827';
+
+        if (categoryChart) {
+            categoryChart.data.datasets[0].borderColor = doughnutBorder;
+            categoryChart.options.plugins.legend.labels.color = labelColor;
+            categoryChart.update();
+        }
+        if (clientTrainingChart) {
+            clientTrainingChart.data.datasets[0].borderColor = doughnutBorder;
+            clientTrainingChart.options.plugins.legend.labels.color = labelColor;
+            clientTrainingChart.update();
+        }
+
+        if (statusChart) {
+            statusChart.options.scales.x.ticks.color = labelColor;
+            statusChart.options.scales.y.ticks.color = labelColor;
+            statusChart.options.scales.y.grid.color = gridColor;
+            statusChart.update();
+        }
+
+        if (trainerChart) {
+            trainerChart.options.scales.x.ticks.color = labelColor;
+            trainerChart.options.scales.y.ticks.color = labelColor;
+            trainerChart.options.scales.y.grid.color = gridColor;
+            trainerChart.update();
+        }
+
+        if (trendChart) {
+            trendChart.data.datasets[0].pointBorderColor = doughnutBorder;
+            trendChart.options.scales.x.ticks.color = labelColor;
+            trendChart.options.scales.y.ticks.color = labelColor;
+            trendChart.options.scales.y.grid.color = gridColor;
+            trendChart.options.scales.x.grid.color = isLight ? 'rgba(15, 23, 42, 0.03)' : 'rgba(156, 163, 175, 0.04)';
+            trendChart.update();
+        }
     }
 </script>
 {{end}}

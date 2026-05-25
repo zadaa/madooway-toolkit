@@ -15,6 +15,17 @@
     <link rel="stylesheet" href="/static/css/style.css">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Anti-flicker Theme Script -->
+    <script>
+        (function() {
+            const theme = localStorage.getItem('theme') || 'dark';
+            if (theme === 'light') {
+                document.documentElement.classList.add('light-mode');
+            } else {
+                document.documentElement.classList.remove('light-mode');
+            }
+        })();
+    </script>
 </head>
 <body class="{{if .User}}dashboard-layout{{else}}auth-layout{{end}}">
     
@@ -72,7 +83,12 @@
             <div>
                 <h1 class="page-title">{{.Title}}</h1>
             </div>
-            <div class="date-display" id="currentDate"></div>
+            <div style="display: flex; align-items: center; gap: 20px;">
+                <button id="themeToggleBtn" class="btn-theme-toggle" title="Ubah Mode Layar">
+                    <i class="fa-solid fa-moon"></i>
+                </button>
+                <div class="date-display" id="currentDate"></div>
+            </div>
         </header>
 
         <main class="content-container">
@@ -105,6 +121,11 @@
     </div>
     
     {{else}}
+    <!-- Floating theme toggle for guest view -->
+    <button id="themeToggleBtnGuest" class="btn-theme-toggle guest-toggle" title="Ubah Mode Layar">
+        <i class="fa-solid fa-moon"></i>
+    </button>
+    
     <!-- Guest Layout (Login/Register) -->
     <main class="auth-container">
         {{if .ErrorMsg}}
@@ -138,6 +159,40 @@
         if (dateEl) {
             const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
             dateEl.textContent = new Date().toLocaleDateString('id-ID', options);
+        }
+
+        // Theme switching logic
+        const toggleBtn = document.getElementById('themeToggleBtn');
+        const toggleBtnGuest = document.getElementById('themeToggleBtnGuest');
+
+        function updateToggleIcons(isLight) {
+            const iconClass = isLight ? 'fa-sun' : 'fa-moon';
+            if (toggleBtn) {
+                toggleBtn.innerHTML = `<i class="fa-solid ${iconClass}"></i>`;
+            }
+            if (toggleBtnGuest) {
+                toggleBtnGuest.innerHTML = `<i class="fa-solid ${iconClass}"></i>`;
+            }
+        }
+
+        // Initialize icons on load
+        const initialIsLight = document.documentElement.classList.contains('light-mode');
+        updateToggleIcons(initialIsLight);
+
+        function toggleTheme() {
+            const currentIsLight = document.documentElement.classList.toggle('light-mode');
+            localStorage.setItem('theme', currentIsLight ? 'light' : 'dark');
+            updateToggleIcons(currentIsLight);
+            
+            // Dispatch dynamic window event for other scripts (e.g. charts) to adapt
+            window.dispatchEvent(new Event('themeChanged'));
+        }
+
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', toggleTheme);
+        }
+        if (toggleBtnGuest) {
+            toggleBtnGuest.addEventListener('click', toggleTheme);
         }
     </script>
 </body>
