@@ -7,10 +7,16 @@
         <p class="section-desc">Atur dan pantau seluruh tugas, bug report, dan permintaan dari klien.</p>
     </div>
     
-    <button onclick="openAddTaskModal()" class="btn btn-primary">
-        <i class="fa-solid fa-plus"></i>
-        <span>Tugas Baru</span>
-    </button>
+    <div style="display: flex; gap: 12px;">
+        <button onclick="exportToCSV()" class="btn btn-secondary">
+            <i class="fa-solid fa-file-csv" style="color: var(--color-primary);"></i>
+            <span>Ekspor CSV</span>
+        </button>
+        <button onclick="openAddTaskModal()" class="btn btn-primary">
+            <i class="fa-solid fa-plus"></i>
+            <span>Tugas Baru</span>
+        </button>
+    </div>
 </div>
 
 <!-- Filter Section -->
@@ -391,6 +397,9 @@
             }
         });
 
+        // Store globally for CSV export
+        window.currentMatchedRows = matchedRows;
+
         const totalRows = matchedRows.length;
         const totalPages = Math.ceil(totalRows / pageSize) || 1;
 
@@ -497,6 +506,56 @@
         // Apply filters resetting currentPage to 1
         currentPage = 1;
         applyFilters();
+    }
+
+    function exportToCSV() {
+        if (!window.currentMatchedRows || window.currentMatchedRows.length === 0) {
+            alert('Tidak ada data tugas untuk diekspor.');
+            return;
+        }
+
+        // CSV Header
+        let csvContent = "\uFEFF"; // UTF-8 BOM to handle accents properly in Excel
+        csvContent += "No,Judul Tugas,Deskripsi,Klien,Kategori,Sumber,Tenggat Waktu,Tanggal Dibuat,Status\r\n";
+
+        window.currentMatchedRows.forEach((row, index) => {
+            const title = row.getAttribute('data-title') || '';
+            const description = row.getAttribute('data-description') || '';
+            const clientName = row.getAttribute('data-client-name') || 'Internal';
+            const category = row.getAttribute('data-category') || '';
+            const source = row.getAttribute('data-source') || '';
+            const dueDate = row.getAttribute('data-due-date') || 'Tidak ada tenggat';
+            const createdAt = row.getAttribute('data-created-at') || '';
+            const status = row.getAttribute('data-status') || '';
+
+            // Escape quotes in CSV fields
+            const escapeCSV = (text) => {
+                if (text === null || text === undefined) return '';
+                let formatted = text.replace(/"/g, '""');
+                if (formatted.includes(',') || formatted.includes('\n') || formatted.includes('\r') || formatted.includes('"')) {
+                    formatted = `"${formatted}"`;
+                }
+                return formatted;
+            };
+
+            csvContent += `${index + 1},${escapeCSV(title)},${escapeCSV(description)},${escapeCSV(clientName)},${escapeCSV(category)},${escapeCSV(source)},${escapeCSV(dueDate)},${escapeCSV(createdAt)},${escapeCSV(status)}\r\n`;
+        });
+
+        // Create blob and download
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        
+        // Use today's date in filename
+        const localDate = new Date();
+        const dateStr = localDate.getFullYear() + String(localDate.getMonth() + 1).padStart(2, '0') + String(localDate.getDate()).padStart(2, '0');
+        
+        link.setAttribute("href", url);
+        link.setAttribute("download", `daftar_tugas_${dateStr}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     }
 </script>
 {{end}}
