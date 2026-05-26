@@ -69,15 +69,15 @@ func UpdateTrainingSchedule(id, userID, clientID int, title, description, dateSt
 
 	query := `UPDATE training_schedules 
 	          SET client_id = ?, title = ?, description = ?, training_date = ?, location = ?, trainer = ?, training_type = ?, status = ?
-	          WHERE id = ? AND user_id = ?`
-	_, err = db.DB.Exec(query, clientID, title, description, parsedDate, location, trainer, trainingType, status, id, userID)
+	          WHERE id = ?`
+	_, err = db.DB.Exec(query, clientID, title, description, parsedDate, location, trainer, trainingType, status, id)
 	return err
 }
 
 // DeleteTrainingSchedule deletes a training schedule
 func DeleteTrainingSchedule(id, userID int) error {
-	query := `DELETE FROM training_schedules WHERE id = ? AND user_id = ?`
-	_, err := db.DB.Exec(query, id, userID)
+	query := `DELETE FROM training_schedules WHERE id = ?`
+	_, err := db.DB.Exec(query, id)
 	return err
 }
 
@@ -86,9 +86,8 @@ func GetTrainingSchedulesByUserID(userID int) ([]TrainingSchedule, error) {
 	query := `SELECT ts.id, ts.user_id, ts.client_id, c.name as client_name, ts.title, COALESCE(ts.description, ''), ts.training_date, COALESCE(ts.location, ''), COALESCE(ts.trainer, ''), ts.training_type, ts.status, ts.created_at, ts.updated_at 
 	          FROM training_schedules ts
 	          INNER JOIN clients c ON ts.client_id = c.id
-	          WHERE ts.user_id = ?
 	          ORDER BY ts.training_date ASC`
-	rows, err := db.DB.Query(query, userID)
+	rows, err := db.DB.Query(query)
 	if err != nil {
 		return nil, err
 	}
@@ -111,8 +110,8 @@ func GetTrainingScheduleByID(id, userID int) (*TrainingSchedule, error) {
 	query := `SELECT ts.id, ts.user_id, ts.client_id, c.name as client_name, ts.title, COALESCE(ts.description, ''), ts.training_date, COALESCE(ts.location, ''), COALESCE(ts.trainer, ''), ts.training_type, ts.status, ts.created_at, ts.updated_at 
 	          FROM training_schedules ts
 	          INNER JOIN clients c ON ts.client_id = c.id
-	          WHERE ts.id = ? AND ts.user_id = ?`
-	row := db.DB.QueryRow(query, id, userID)
+	          WHERE ts.id = ?`
+	row := db.DB.QueryRow(query, id)
 
 	var ts TrainingSchedule
 	err := row.Scan(&ts.ID, &ts.UserID, &ts.ClientID, &ts.ClientName, &ts.Title, &ts.Description, &ts.TrainingDate, &ts.Location, &ts.Trainer, &ts.TrainingType, &ts.Status, &ts.CreatedAt, &ts.UpdatedAt)
