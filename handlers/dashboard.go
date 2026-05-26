@@ -18,6 +18,8 @@ type DashboardData struct {
 	Clients       []models.Client
 	TasksJSON     template.JS
 	SchedulesJSON template.JS
+	ProvinceJSON  template.JS
+	ClientsJSON   template.JS
 }
 
 // ShowDashboard gathers stats and renders the main dashboard page
@@ -92,6 +94,21 @@ func ShowDashboard(w http.ResponseWriter, r *http.Request) {
 		schedulesJSON = []byte("[]")
 	}
 
+	provinceStats, err := models.GetClientStatsByProvince()
+	if err != nil {
+		log.Printf("Error fetching client province stats: %v", err)
+		provinceStats = []models.ProvinceStat{}
+	}
+	provinceJSON, err := json.Marshal(provinceStats)
+	if err != nil {
+		provinceJSON = []byte("[]")
+	}
+
+	clientsJSON, err := json.Marshal(clients)
+	if err != nil {
+		clientsJSON = []byte("[]")
+	}
+
 	data := DashboardData{
 		KPI:           kpi,
 		StatusJSON:    template.JS(statusJSON),
@@ -100,6 +117,8 @@ func ShowDashboard(w http.ResponseWriter, r *http.Request) {
 		Clients:       clients,
 		TasksJSON:     template.JS(tasksJSON),
 		SchedulesJSON: template.JS(schedulesJSON),
+		ProvinceJSON:  template.JS(provinceJSON),
+		ClientsJSON:   template.JS(clientsJSON),
 	}
 
 	RenderTemplate(w, r, "dashboard.html", "Dashboard Analytics", "dashboard", data, "", "")

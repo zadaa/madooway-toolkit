@@ -1,8 +1,56 @@
 {{define "content"}}
-<!-- Include Select2 CSS -->
+<!-- Include Select2 & Leaflet CSS -->
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
 <style>
+/* Leaflet custom premium dark glass overrides */
+.leaflet-container {
+    background-color: var(--bg-card) !important;
+    font-family: 'Inter', sans-serif;
+}
+.leaflet-bar {
+    border: 1px solid var(--border-color) !important;
+    box-shadow: var(--shadow-soft) !important;
+    border-radius: 8px !important;
+    overflow: hidden;
+}
+.leaflet-bar a {
+    background-color: var(--bg-card) !important;
+    color: var(--text-primary) !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    transition: var(--transition-smooth);
+}
+.leaflet-bar a:hover {
+    background-color: var(--bg-input-focus) !important;
+    color: var(--color-primary) !important;
+}
+/* Map Glass Tooltip */
+.map-tooltip-popup .leaflet-popup-content-wrapper {
+    background: rgba(20, 20, 20, 0.85) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    color: #ffffff !important;
+    border-radius: 12px !important;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3) !important;
+    padding: 6px !important;
+}
+.light-mode .map-tooltip-popup .leaflet-popup-content-wrapper {
+    background: rgba(255, 255, 255, 0.9) !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+    color: #1a1a1a !important;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.08) !important;
+}
+.map-tooltip-popup .leaflet-popup-tip {
+    background: rgba(20, 20, 20, 0.85) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+}
+.light-mode .map-tooltip-popup .leaflet-popup-tip {
+    background: rgba(255, 255, 255, 0.9) !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
 /* Filter Container and Grid */
 .filter-row-container {
     background: var(--bg-card);
@@ -226,10 +274,33 @@
     </div>
 </div>
 
-<!-- Include jQuery and Select2 JS -->
+<!-- Client Distribution Map Card -->
+<div class="chart-card full-width-card" style="margin-top: 24px;">
+    <div class="chart-header" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+        <div>
+            <h3>Peta Distribusi Klien</h3>
+            <p class="section-desc" style="margin-top: 4px;">Penyebaran klien aktif berdasarkan provinsi di Indonesia.</p>
+        </div>
+        <div id="mapLegend" style="display: flex; align-items: center; gap: 12px; font-size: 11px; color: var(--text-secondary); background: rgba(255, 255, 255, 0.03); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color);">
+            <span style="font-weight: 600;">Intensitas Klien:</span>
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="width: 10px; height: 10px; border-radius: 2px; background-color: rgba(255, 123, 0, 0.05); border: 1px solid rgba(255, 123, 0, 0.2); display: inline-block;"></span> 0
+                <span style="width: 10px; height: 10px; border-radius: 2px; background-color: rgba(255, 174, 25, 0.4); border: 1px solid rgba(255, 174, 25, 0.6); display: inline-block;"></span> 1-2
+                <span style="width: 10px; height: 10px; border-radius: 2px; background-color: rgba(255, 123, 0, 0.7); border: 1px solid rgba(255, 123, 0, 0.9); display: inline-block;"></span> 3-5
+                <span style="width: 10px; height: 10px; border-radius: 2px; background-color: rgba(235, 90, 0, 0.95); border: 1px solid rgba(235, 90, 0, 1); display: inline-block;"></span> 6+
+            </div>
+        </div>
+    </div>
+    <div class="chart-body" style="height: 480px; position: relative; border-radius: 12px; overflow: hidden; background: var(--bg-input); border: 1px solid var(--border-color);">
+        <div id="map" style="width: 100%; height: 100%; z-index: 1;"></div>
+    </div>
+</div>
+
+<!-- Include jQuery, Select2, Chart.js, and Leaflet JS -->
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
     // Read JSON variables from Go backend
     const initialStatusData = {{.Data.StatusJSON}} || {};
@@ -237,6 +308,8 @@
     const initialDateData = {{.Data.DateJSON}} || [];
     const tasks = {{.Data.TasksJSON}} || [];
     const schedules = {{.Data.SchedulesJSON}} || [];
+    const initialProvinceData = {{.Data.ProvinceJSON}} || [];
+    const initialClientsJSON = {{.Data.ClientsJSON}} || [];
 
     // Colors matching style CSS
     const cyanColor = '#ff7b00';
@@ -247,8 +320,33 @@
     const redColor = '#ff4d6d';
     const greenColor = '#2ec4b6';
 
-    // Global Chart instance handlers
+    // Global Chart and Map instance handlers
     let categoryChart, statusChart, trendChart, trainerChart, clientTrainingChart;
+    let map, geoJsonLayer, tileLayer;
+
+    // Sync map tiles on theme toggling
+    function updateMapTiles() {
+        if (!map) return;
+        if (tileLayer) {
+            map.removeLayer(tileLayer);
+        }
+        const isLight = document.documentElement.classList.contains('light-mode');
+        const tileUrl = isLight 
+            ? 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
+            : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+            
+        tileLayer = L.tileLayer(tileUrl, {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 20
+        });
+        tileLayer.addTo(map);
+    }
+
+    // Sync theme toggle with Leaflet tiles
+    window.addEventListener('themeChanged', () => {
+        updateMapTiles();
+    });
 
     document.addEventListener("DOMContentLoaded", function() {
 
@@ -455,6 +553,7 @@
 
         // Initial dashboard rendering
         updateDashboard();
+        initIndonesiaMap();
 
         // Listen to theme changes to dynamically update Chart colors
         window.addEventListener('themeChanged', updateChartTheme);
@@ -690,6 +789,180 @@
             trendChart.options.scales.x.grid.color = isLight ? 'rgba(15, 23, 42, 0.03)' : 'rgba(156, 163, 175, 0.04)';
             trendChart.update();
         }
+    }
+
+    function initIndonesiaMap() {
+        const mapEl = document.getElementById('map');
+        if (!mapEl) return;
+
+        map = L.map('map', {
+            center: [-2.5489, 118.0149],
+            zoom: 5,
+            minZoom: 4,
+            maxZoom: 7,
+            zoomControl: true,
+            scrollWheelZoom: false
+        });
+
+        updateMapTiles();
+
+        const provinceStats = {};
+        initialProvinceData.forEach(item => {
+            provinceStats[item.province] = item.count;
+        });
+
+        const clientsByProvince = {};
+        initialClientsJSON.forEach(c => {
+            const prov = c.Province || "DKI Jakarta";
+            if (!clientsByProvince[prov]) {
+                clientsByProvince[prov] = [];
+            }
+            clientsByProvince[prov].push(c);
+        });
+
+        const geoJsonNameMap = {
+            "Aceh": "DI. ACEH",
+            "Banten": "PROBANTEN",
+            "DKI Jakarta": "DKI JAKARTA",
+            "Jawa Barat": "JAWA BARAT",
+            "Jawa Tengah": "JAWA TENGAH",
+            "DI Yogyakarta": "DAERAH ISTIMEWA YOGYAKARTA",
+            "Jawa Timur": "JAWA TIMUR",
+            "Bali": "BALI",
+            "Nusa Tenggara Barat": "NUSATENGGARA BARAT",
+            "Nusa Tenggara Timur": "NUSA TENGGARA TIMUR",
+            "Sumatera Utara": "SUMATERA UTARA",
+            "Sumatera Barat": "SUMATERA BARAT",
+            "Riau": "RIAU",
+            "Kepulauan Riau": "RIAU",
+            "Jambi": "JAMBI",
+            "Sumatera Selatan": "SUMATERA SELATAN",
+            "Bangka Belitung": "BANGKA BELITUNG",
+            "Bengkulu": "BENGKULU",
+            "Lampung": "LAMPUNG",
+            "Kalimantan Barat": "KALIMANTAN BARAT",
+            "Kalimantan Tengah": "KALIMANTAN TENGAH",
+            "Kalimantan Selatan": "KALIMANTAN SELATAN",
+            "Kalimantan Timur": "KALIMANTAN TIMUR",
+            "Kalimantan Utara": "KALIMANTAN TIMUR",
+            "Sulawesi Utara": "SULAWESI UTARA",
+            "Gorontalo": "GORONTALO",
+            "Sulawesi Tengah": "SULAWESI TENGAH",
+            "Sulawesi Barat": "SULAWESI TENGAH",
+            "Sulawesi Selatan": "SULAWESI SELATAN",
+            "Sulawesi Tenggara": "SULAWESI TENGGARA",
+            "Maluku": "MALUKU",
+            "Maluku Utara": "MALUKU UTARA",
+            "Papua": "IRIAN JAYA TIMUR",
+            "Papua Barat": "IRIAN JAYA BARAT",
+            "Papua Tengah": "IRIAN JAYA TENGAH",
+            "Papua Pegunungan": "IRIAN JAYA TENGAH",
+            "Papua Selatan": "IRIAN JAYA TIMUR",
+            "Papua Barat Daya": "IRIAN JAYA BARAT"
+        };
+
+        fetch('/static/js/indonesia-prov-simple.json')
+            .then(res => res.json())
+            .then(geoJson => {
+                geoJsonLayer = L.geoJSON(geoJson, {
+                    style: function(feature) {
+                        const geoJsonName = feature.properties.Propinsi;
+                        let count = 0;
+                        for (const [standardName, mappedName] of Object.entries(geoJsonNameMap)) {
+                            if (mappedName === geoJsonName) {
+                                count += (provinceStats[standardName] || 0);
+                            }
+                        }
+
+                        let fillColor = 'rgba(255, 123, 0, 0.05)';
+                        let fillOpacity = 0.4;
+                        let weight = 1;
+
+                        if (count > 0) {
+                            fillOpacity = 0.8;
+                            weight = 1.5;
+                            if (count <= 2) {
+                                fillColor = 'rgba(255, 174, 25, 0.4)';
+                            } else if (count <= 5) {
+                                fillColor = 'rgba(255, 123, 0, 0.7)';
+                            } else {
+                                fillColor = 'rgba(235, 90, 0, 0.95)';
+                            }
+                        }
+
+                        return {
+                            fillColor: fillColor,
+                            fillOpacity: fillOpacity,
+                            color: 'var(--border-color)',
+                            weight: weight,
+                            opacity: 0.6
+                        };
+                    },
+                    onEachFeature: function(feature, layer) {
+                        const geoJsonName = feature.properties.Propinsi;
+                        let provinceName = geoJsonName;
+                        let matchedClients = [];
+                        
+                        for (const [standardName, mappedName] of Object.entries(geoJsonNameMap)) {
+                            if (mappedName === geoJsonName) {
+                                provinceName = standardName;
+                                if (clientsByProvince[standardName]) {
+                                    matchedClients = matchedClients.concat(clientsByProvince[standardName]);
+                                }
+                            }
+                        }
+
+                        const count = matchedClients.length;
+
+                        let tooltipContent = `
+                            <div style="font-family: 'Outfit', sans-serif; font-size: 13.5px; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.15); padding-bottom: 4px;">
+                                <span>${provinceName}</span>
+                                <span style="background: var(--color-primary); color: #030303; font-size: 11px; padding: 2px 6px; border-radius: 4px; font-weight: 700;">${count} Klien</span>
+                            </div>
+                        `;
+
+                        if (count > 0) {
+                            tooltipContent += '<ul style="margin: 0; padding-left: 14px; font-size: 11.5px; line-height: 1.4; list-style-type: square; color: rgba(255,255,255,0.9);">';
+                            matchedClients.forEach(c => {
+                                tooltipContent += `<li style="margin-bottom: 2px;"><strong>${c.Name}</strong> <span style="opacity:0.75; font-size:10.5px;">(${c.PricePackage})</span></li>`;
+                            });
+                            tooltipContent += '</ul>';
+                        } else {
+                            tooltipContent += '<div style="font-size: 11px; color: rgba(255,255,255,0.6); font-style: italic;">Tidak ada klien aktif.</div>';
+                        }
+
+                        layer.bindPopup(tooltipContent, {
+                            className: 'map-tooltip-popup',
+                            closeButton: false,
+                            offset: L.point(0, -10)
+                        });
+
+                        layer.on({
+                            mouseover: function(e) {
+                                const l = e.target;
+                                l.setStyle({
+                                    color: 'var(--color-primary)',
+                                    weight: 2,
+                                    opacity: 1
+                                });
+                                l.openPopup();
+                            },
+                            mouseout: function(e) {
+                                geoJsonLayer.resetStyle(e.target);
+                                e.target.closePopup();
+                            },
+                            click: function(e) {
+                                map.fitBounds(e.target.getBounds());
+                            }
+                        });
+                    }
+                }).addTo(map);
+            })
+            .catch(err => console.error("Error loading map GeoJSON: ", err));
+
+        window.addEventListener('resize', () => {
+            map.invalidateSize();
+        });
     }
 </script>
 {{end}}

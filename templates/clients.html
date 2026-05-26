@@ -49,6 +49,7 @@
 
                 <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 10px; font-size: 13px; color: var(--text-secondary);">
                     <span><i class="fa-solid fa-user-tie" style="width: 16px; color: var(--color-secondary);"></i> PIC: {{if .PicName}}{{.PicName}}{{else}}-{{end}}</span>
+                    <span><i class="fa-solid fa-map-location-dot" style="width: 16px; color: var(--text-muted);"></i> {{if .Province}}{{.Province}}{{else}}DKI Jakarta{{end}}</span>
                     <span><i class="fa-solid fa-envelope" style="width: 16px; color: var(--text-muted);"></i> {{if .Email}}{{.Email}}{{else}}-{{end}}</span>
                     <span><i class="fa-solid fa-phone" style="width: 16px; color: var(--text-muted);"></i> {{if .Phone}}{{.Phone}}{{else}}-{{end}}</span>
                 </div>
@@ -64,6 +65,7 @@
                         data-pic-name="{{.PicName}}"
                         data-price-package="{{.PricePackage}}"
                         data-logo="{{.Logo}}"
+                        data-province="{{.Province}}"
                         onclick="openEditClientModal(this)">
                     <i class="fa-solid fa-pen-to-square"></i>
                 </button>
@@ -126,10 +128,52 @@
 
             <div class="form-row">
                 <div class="form-group col-half">
+                    <label for="clientProvince">Provinsi Lokasi Klien</label>
+                    <select id="clientProvince" name="province" required style="width: 100%; padding: 10px 12px; font-size: 13px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-primary);">
+                        <option value="DKI Jakarta">DKI Jakarta</option>
+                        <option value="Jawa Barat">Jawa Barat</option>
+                        <option value="Jawa Tengah">Jawa Tengah</option>
+                        <option value="Jawa Timur">Jawa Timur</option>
+                        <option value="Banten">Banten</option>
+                        <option value="DI Yogyakarta">DI Yogyakarta</option>
+                        <option value="Bali">Bali</option>
+                        <option value="Aceh">Aceh</option>
+                        <option value="Sumatera Utara">Sumatera Utara</option>
+                        <option value="Sumatera Barat">Sumatera Barat</option>
+                        <option value="Riau">Riau</option>
+                        <option value="Kepulauan Riau">Kepulauan Riau</option>
+                        <option value="Jambi">Jambi</option>
+                        <option value="Sumatera Selatan">Sumatera Selatan</option>
+                        <option value="Bangka Belitung">Bangka Belitung</option>
+                        <option value="Bengkulu">Bengkulu</option>
+                        <option value="Lampung">Lampung</option>
+                        <option value="Nusa Tenggara Barat">Nusa Tenggara Barat</option>
+                        <option value="Nusa Tenggara Timur">Nusa Tenggara Timur</option>
+                        <option value="Kalimantan Barat">Kalimantan Barat</option>
+                        <option value="Kalimantan Tengah">Kalimantan Tengah</option>
+                        <option value="Kalimantan Selatan">Kalimantan Selatan</option>
+                        <option value="Kalimantan Timur">Kalimantan Timur</option>
+                        <option value="Kalimantan Utara">Kalimantan Utara</option>
+                        <option value="Sulawesi Utara">Sulawesi Utara</option>
+                        <option value="Gorontalo">Gorontalo</option>
+                        <option value="Sulawesi Tengah">Sulawesi Tengah</option>
+                        <option value="Sulawesi Barat">Sulawesi Barat</option>
+                        <option value="Sulawesi Selatan">Sulawesi Selatan</option>
+                        <option value="Sulawesi Tenggara">Sulawesi Tenggara</option>
+                        <option value="Maluku">Maluku</option>
+                        <option value="Maluku Utara">Maluku Utara</option>
+                        <option value="Papua Barat">Papua Barat</option>
+                        <option value="Papua">Papua</option>
+                    </select>
+                </div>
+                <div class="form-group col-half">
                     <label for="clientLogo">Logo Klien (PNG/JPG/WEBP)</label>
                     <input type="file" id="clientLogo" name="logo" accept="image/*" style="padding: 8px 12px; font-size: 13px;">
                 </div>
-                <div class="form-group col-half" id="logoPreviewContainer" style="display: none; align-items: center; gap: 10px; margin-top: 24px;">
+            </div>
+
+            <div class="form-row" id="logoPreviewRow" style="margin-top: -10px;">
+                <div class="form-group col-half" id="logoPreviewContainer" style="display: none; align-items: center; gap: 10px; padding-top: 10px;">
                     <img id="logoPreview" src="" alt="Preview Logo" style="width: 38px; height: 38px; border-radius: 6px; object-fit: cover; border: 1px solid var(--border-color); background: rgba(255,255,255,0.05);">
                     <span style="font-size: 12px; color: var(--text-muted);">Logo saat ini</span>
                 </div>
@@ -156,6 +200,7 @@
         form.action = "/clients/create";
         clientID.value = "";
         form.reset();
+        document.getElementById('clientProvince').value = "DKI Jakarta";
         
         document.getElementById('logoPreviewContainer').style.display = "none";
         modal.style.display = "flex";
@@ -186,6 +231,7 @@
         clientPhone.value = btn.getAttribute('data-phone') || "";
         clientPicName.value = btn.getAttribute('data-pic-name') || "";
         clientPricePackage.value = btn.getAttribute('data-price-package') || "";
+        document.getElementById('clientProvince').value = btn.getAttribute('data-province') || "DKI Jakarta";
         
         const logoPath = btn.getAttribute('data-logo') || "";
         const previewContainer = document.getElementById('logoPreviewContainer');

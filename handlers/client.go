@@ -86,7 +86,12 @@ func CreateClient(w http.ResponseWriter, r *http.Request) {
 		logoPath = "/static/uploads/logos/" + newFilename
 	}
 
-	err = models.CreateClient(name, shortName, email, phone, picName, pricePackage, logoPath)
+	province := strings.TrimSpace(r.FormValue("province"))
+	if province == "" {
+		province = "DKI Jakarta"
+	}
+
+	err = models.CreateClient(name, shortName, email, phone, picName, pricePackage, logoPath, province)
 	if err != nil {
 		log.Printf("Error creating client: %v", err)
 		http.Redirect(w, r, "/clients?error=Gagal+menambahkan+klien", http.StatusSeeOther)
@@ -167,7 +172,12 @@ func UpdateClient(w http.ResponseWriter, r *http.Request) {
 		logoPath = "/static/uploads/logos/" + newFilename
 	}
 
-	err = models.UpdateClient(id, name, shortName, email, phone, picName, pricePackage, logoPath)
+	province := strings.TrimSpace(r.FormValue("province"))
+	if province == "" {
+		province = "DKI Jakarta"
+	}
+
+	err = models.UpdateClient(id, name, shortName, email, phone, picName, pricePackage, logoPath, province)
 	if err != nil {
 		log.Printf("Error updating client: %v", err)
 		http.Redirect(w, r, "/clients?error=Gagal+memperbarui+klien", http.StatusSeeOther)

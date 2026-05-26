@@ -157,7 +157,22 @@ func runMigrations() {
 		if err != nil {
 			log.Fatalf("Error adding foreign key constraint to tasks table: %v", err)
 		}
-		log.Println("Database migration completed: client_id column added to tasks table")
+	}
+
+	// Check if province column exists in clients table
+	var provinceColumnCount int
+	checkProvinceQuery := `SELECT COUNT(*) FROM information_schema.COLUMNS 
+	                      WHERE TABLE_SCHEMA = DATABASE() 
+	                      AND TABLE_NAME = 'clients' 
+	                      AND COLUMN_NAME = 'province'`
+	err = DB.QueryRow(checkProvinceQuery).Scan(&provinceColumnCount)
+	if err == nil && provinceColumnCount == 0 {
+		log.Println("Migrating clients table: adding province column")
+		_, err = DB.Exec("ALTER TABLE clients ADD COLUMN province VARCHAR(100) NOT NULL DEFAULT 'DKI Jakarta'")
+		if err != nil {
+			log.Fatalf("Error adding province column to clients table: %v", err)
+		}
+		log.Println("Database migration completed: province column added to clients table")
 	}
 
 	// Create Training Schedules table (includes trainer field)
