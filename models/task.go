@@ -85,23 +85,23 @@ func UpdateTask(taskID int, userID int, title, description, category, source, st
 
 	query := `UPDATE tasks 
 	          SET title = ?, description = ?, category = ?, source = ?, status = ?, due_date = ?, client_id = ?
-	          WHERE id = ? AND user_id = ?`
-	_, err := db.DB.Exec(query, title, description, category, source, status, dueDate, clientID, taskID, userID)
+	          WHERE id = ?`
+	_, err := db.DB.Exec(query, title, description, category, source, status, dueDate, clientID, taskID)
 	return err
 }
 
 // DeleteTask deletes a task belonging to the user
 func DeleteTask(taskID int, userID int) error {
-	query := "DELETE FROM tasks WHERE id = ? AND user_id = ?"
-	_, err := db.DB.Exec(query, taskID, userID)
+	query := "DELETE FROM tasks WHERE id = ?"
+	_, err := db.DB.Exec(query, taskID)
 	return err
 }
 
 // GetTaskByID retrieves a single task
 func GetTaskByID(taskID int, userID int) (*Task, error) {
 	query := `SELECT id, user_id, title, COALESCE(description, ''), category, source, status, due_date, client_id, created_at, updated_at 
-	          FROM tasks WHERE id = ? AND user_id = ?`
-	row := db.DB.QueryRow(query, taskID, userID)
+	          FROM tasks WHERE id = ?`
+	row := db.DB.QueryRow(query, taskID)
 
 	var t Task
 	err := row.Scan(&t.ID, &t.UserID, &t.Title, &t.Description, &t.Category, &t.Source, &t.Status, &t.DueDate, &t.ClientID, &t.CreatedAt, &t.UpdatedAt)
@@ -116,11 +116,9 @@ func GetTasksByUserID(userID int, search, category, status string) ([]Task, erro
 	var queryParts []string
 	var args []interface{}
 
-	queryParts = append(queryParts, `SELECT t.id, t.user_id, t.title, COALESCE(t.description, ''), t.category, t.source, t.status, t.due_date, t.client_id, COALESCE(c.name, '') as client_name, t.created_at, t.updated_at 
-	                                 FROM tasks t 
-	                                 LEFT JOIN clients c ON t.client_id = c.id 
-	                                 WHERE t.user_id = ?`)
-	args = append(args, userID)
+	baseQuery := `SELECT t.id, t.user_id, t.title, COALESCE(t.description, ''), t.category, t.source, t.status, t.due_date, t.client_id, COALESCE(c.name, '') as client_name, t.created_at, t.updated_at 
+	              FROM tasks t 
+	              LEFT JOIN clients c ON t.client_id = c.id`
 
 	if search != "" {
 		queryParts = append(queryParts, "(t.title LIKE ? OR t.description LIKE ?)")
@@ -135,11 +133,11 @@ func GetTasksByUserID(userID int, search, category, status string) ([]Task, erro
 		args = append(args, status)
 	}
 
-	// Join all with AND
-	fullQuery := queryParts[0]
-	if len(queryParts) > 1 {
-		fullQuery += " AND " + strings.Join(queryParts[1:], " AND ")
+	fullQuery := baseQuery
+	if len(queryParts) > 0 {
+		fullQuery += " WHERE " + strings.Join(queryParts, " AND ")
 	}
+
 	// Sort by due date
 	fullQuery += " ORDER BY CASE WHEN t.due_date IS NULL THEN 1 ELSE 0 END, t.due_date ASC, t.created_at DESC"
 
@@ -164,8 +162,8 @@ func GetTasksByUserID(userID int, search, category, status string) ([]Task, erro
 
 // GetTaskStatsByCategory counts tasks per category for a user
 func GetTaskStatsByCategory(userID int) (map[string]int, error) {
-	query := "SELECT category, COUNT(*) FROM tasks WHERE user_id = ? GROUP BY category"
-	rows, err := db.DB.Query(query, userID)
+	query := "SELECT category, COUNT(*) FROM tasks GROUP BY category"
+	rows, err := db.DB.Query(query)
 	if err != nil {
 		return nil, err
 	}
@@ -185,8 +183,8 @@ func GetTaskStatsByCategory(userID int) (map[string]int, error) {
 
 // GetTaskStatsByStatus counts tasks per status for a user
 func GetTaskStatsByStatus(userID int) (map[string]int, error) {
-	query := "SELECT status, COUNT(*) FROM tasks WHERE user_id = ? GROUP BY status"
-	rows, err := db.DB.Query(query, userID)
+	query := "SELECT status, COUNT(*) FROM tasks GROUP BY status"
+	rows, err := db.DB.Query(query)
 	if err != nil {
 		return nil, err
 	}
@@ -214,10 +212,10 @@ func GetTaskStatsByDate(userID int) ([]DateStat, error) {
 	// Query task counts grouped by date for the last 14 days
 	query := `SELECT DATE(created_at) as task_date, COUNT(*) 
 	          FROM tasks 
-	          WHERE user_id = ? AND created_at >= DATE_SUB(CURDATE(), INTERVAL 13 DAY)
+	          WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 13 DAY)
 	          GROUP BY task_date
 	          ORDER BY task_date ASC`
-	rows, err := db.DB.Query(query, userID)
+	rows, err := db.DB.Query(query)
 	if err != nil {
 		return nil, err
 	}
@@ -274,9 +272,8 @@ func GetKPIStats(userID int) (*KPIStats, error) {
 				SUM(CASE WHEN status = 'Pending' THEN 1 ELSE 0 END),
 				SUM(CASE WHEN status = 'In Progress' THEN 1 ELSE 0 END),
 				SUM(CASE WHEN status = 'Completed' THEN 1 ELSE 0 END)
-	          FROM tasks 
-	          WHERE user_id = ?`
-	row := db.DB.QueryRow(query, userID)
+	          FROM tasks`
+	row := db.DB.QueryRow(query)
 
 	var total, pending, inProgress, completed sql.NullInt64
 	err := row.Scan(&total, &pending, &inProgress, &completed)

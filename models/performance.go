@@ -89,15 +89,15 @@ func CreatePerformance(userID, clientID int, bulan string, totalKlien, totalProj
 func UpdatePerformance(id, userID, clientID int, bulan string, totalKlien, totalProject, totalUser, totalUserAktif, totalAbsen, totalTelat, tepatWaktu int, fiturAbsensi, fiturLaporan, fiturPayroll, fiturMonitoring, fiturPayontime, fiturPaynow bool, catatan string) error {
 	query := `UPDATE app_performances 
 	          SET client_id = ?, bulan = ?, total_klien = ?, total_project = ?, total_user = ?, total_user_aktif = ?, total_absen = ?, total_telat = ?, tepat_waktu = ?, fitur_absensi = ?, fitur_laporan = ?, fitur_payroll = ?, fitur_monitoring = ?, fitur_payontime = ?, fitur_paynow = ?, catatan = ?
-	          WHERE id = ? AND user_id = ?`
-	_, err := db.DB.Exec(query, clientID, bulan, totalKlien, totalProject, totalUser, totalUserAktif, totalAbsen, totalTelat, tepatWaktu, fiturAbsensi, fiturLaporan, fiturPayroll, fiturMonitoring, fiturPayontime, fiturPaynow, catatan, id, userID)
+	          WHERE id = ?`
+	_, err := db.DB.Exec(query, clientID, bulan, totalKlien, totalProject, totalUser, totalUserAktif, totalAbsen, totalTelat, tepatWaktu, fiturAbsensi, fiturLaporan, fiturPayroll, fiturMonitoring, fiturPayontime, fiturPaynow, catatan, id)
 	return err
 }
 
 // DeletePerformance deletes a performance record
 func DeletePerformance(id, userID int) error {
-	query := `DELETE FROM app_performances WHERE id = ? AND user_id = ?`
-	_, err := db.DB.Exec(query, id, userID)
+	query := `DELETE FROM app_performances WHERE id = ?`
+	_, err := db.DB.Exec(query, id)
 	return err
 }
 
@@ -106,8 +106,8 @@ func GetPerformanceByID(id, userID int) (*AppPerformance, error) {
 	query := `SELECT ap.id, ap.user_id, ap.client_id, c.name as client_name, COALESCE(c.logo, '') as client_logo, ap.bulan, ap.total_klien, ap.total_project, ap.total_user, ap.total_user_aktif, ap.total_absen, ap.total_telat, ap.tepat_waktu, ap.fitur_absensi, ap.fitur_laporan, ap.fitur_payroll, ap.fitur_monitoring, ap.fitur_payontime, ap.fitur_paynow, COALESCE(ap.catatan, ''), ap.created_at, ap.updated_at 
 	          FROM app_performances ap
 	          INNER JOIN clients c ON ap.client_id = c.id
-	          WHERE ap.id = ? AND ap.user_id = ?`
-	row := db.DB.QueryRow(query, id, userID)
+	          WHERE ap.id = ?`
+	row := db.DB.QueryRow(query, id)
 
 	var ap AppPerformance
 	err := row.Scan(&ap.ID, &ap.UserID, &ap.ClientID, &ap.ClientName, &ap.ClientLogo, &ap.Bulan, &ap.TotalKlien, &ap.TotalProject, &ap.TotalUser, &ap.TotalUserAktif, &ap.TotalAbsen, &ap.TotalTelat, &ap.TepatWaktu, &ap.FiturAbsensi, &ap.FiturLaporan, &ap.FiturPayroll, &ap.FiturMonitoring, &ap.FiturPayontime, &ap.FiturPaynow, &ap.Catatan, &ap.CreatedAt, &ap.UpdatedAt)
@@ -125,9 +125,8 @@ func GetAllPerformancesByUserID(userID int) ([]AppPerformance, error) {
 	query := `SELECT ap.id, ap.user_id, ap.client_id, c.name as client_name, COALESCE(c.logo, '') as client_logo, ap.bulan, ap.total_klien, ap.total_project, ap.total_user, ap.total_user_aktif, ap.total_absen, ap.total_telat, ap.tepat_waktu, ap.fitur_absensi, ap.fitur_laporan, ap.fitur_payroll, ap.fitur_monitoring, ap.fitur_payontime, ap.fitur_paynow, COALESCE(ap.catatan, ''), ap.created_at, ap.updated_at 
 	          FROM app_performances ap
 	          INNER JOIN clients c ON ap.client_id = c.id
-	          WHERE ap.user_id = ?
 	          ORDER BY ap.bulan DESC, c.name ASC`
-	rows, err := db.DB.Query(query, userID)
+	rows, err := db.DB.Query(query)
 	if err != nil {
 		return nil, err
 	}
