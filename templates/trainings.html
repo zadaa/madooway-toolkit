@@ -127,6 +127,16 @@
     border-radius: 50%;
 }
 
+.upcoming-event-trainer {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    transition: var(--transition-smooth);
+}
+
 .indicator-online {
     background-color: var(--color-purple);
     box-shadow: 0 0 8px var(--color-purple);
@@ -828,6 +838,11 @@
 
         // Populate left sidebar list
         updateSidebarList(schedules);
+
+        // Listen for theme changes to adapt badge colors dynamically
+        window.addEventListener('themeChanged', () => {
+            applyFilters();
+        });
     });
 
     function initCalendar() {
@@ -931,6 +946,38 @@
         applyFilters();
     }
 
+    // Helper to generate consistent pleasant colors based on trainer name
+    function getTrainerColor(trainerName) {
+        if (!trainerName || trainerName.trim() === "" || trainerName === "Tidak ditentukan") {
+            return {
+                bg: 'rgba(255, 255, 255, 0.05)',
+                border: 'var(--border-color)',
+                fg: 'var(--text-muted)'
+            };
+        }
+        
+        let hash = 0;
+        const name = trainerName.trim();
+        for (let i = 0; i < name.length; i++) {
+            hash = name.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        
+        const hue = Math.abs(hash) % 360;
+        const isLight = document.documentElement.classList.contains('light-mode');
+        
+        if (isLight) {
+            const bg = `hsl(${hue}, 60%, 92%)`;
+            const border = `hsl(${hue}, 50%, 80%)`;
+            const fg = `hsl(${hue}, 70%, 25%)`;
+            return { bg, border, fg };
+        } else {
+            const bg = `hsl(${hue}, 55%, 35%, 0.15)`;
+            const border = `hsl(${hue}, 50%, 45%, 0.3)`;
+            const fg = `hsl(${hue}, 80%, 75%)`;
+            return { bg, border, fg };
+        }
+    }
+
     // Sidebar upcoming listing renderer
     function updateSidebarList(eventsList) {
         const listContainer = document.getElementById('upcomingEventsList');
@@ -972,10 +1019,18 @@
                 indicatorClass = "indicator-online";
             }
 
+            const trainerColor = getTrainerColor(props.trainer);
+            const trainerHtml = props.trainer 
+                ? `<span class="upcoming-event-trainer" style="background-color: ${trainerColor.bg}; border: 1px solid ${trainerColor.border}; color: ${trainerColor.fg};">${props.trainer}</span>`
+                : `<span class="upcoming-event-trainer" style="background-color: rgba(255,255,255,0.03); border: 1px dashed var(--border-color); color: var(--text-muted);">-</span>`;
+
             const itemHtml = `
                 <div class="upcoming-event-item" onclick="openDetailsByID('${ev.id}')">
                     <div class="upcoming-event-title">${ev.title}</div>
-                    <div class="upcoming-event-client">${props.clientName}</div>
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; gap: 8px;">
+                        <span class="upcoming-event-client" style="margin-bottom: 0;">${props.clientName}</span>
+                        ${trainerHtml}
+                    </div>
                     <div class="upcoming-event-meta">
                         <span class="upcoming-event-date">
                             <i class="fa-regular fa-clock"></i>
@@ -1010,7 +1065,31 @@
         document.getElementById('detailTitle').textContent = event.title;
         document.getElementById('detailClient').textContent = props.clientName;
         document.getElementById('detailDate').textContent = props.formattedDate + " WIB";
-        document.getElementById('detailTrainer').textContent = props.trainer || "Tidak ditentukan";
+        
+        const trainerEl = document.getElementById('detailTrainer');
+        const trainerName = props.trainer || "Tidak ditentukan";
+        trainerEl.textContent = trainerName;
+        if (props.trainer) {
+            const colors = getTrainerColor(props.trainer);
+            trainerEl.style.backgroundColor = colors.bg;
+            trainerEl.style.border = `1px solid ${colors.border}`;
+            trainerEl.style.color = colors.fg;
+            trainerEl.style.padding = '3px 8px';
+            trainerEl.style.borderRadius = '6px';
+            trainerEl.style.display = 'inline-block';
+            trainerEl.style.fontSize = '12px';
+            trainerEl.style.fontWeight = '600';
+        } else {
+            trainerEl.style.backgroundColor = 'transparent';
+            trainerEl.style.border = 'none';
+            trainerEl.style.color = 'var(--text-primary)';
+            trainerEl.style.padding = '0';
+            trainerEl.style.borderRadius = '0';
+            trainerEl.style.display = 'block';
+            trainerEl.style.fontSize = '13.5px';
+            trainerEl.style.fontWeight = '500';
+        }
+
         document.getElementById('detailLocation').textContent = props.location || (props.trainingType === 'Online' ? 'Online' : '-');
         document.getElementById('detailDescription').textContent = props.description || "Tidak ada deskripsi.";
 
