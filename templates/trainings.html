@@ -866,6 +866,35 @@
             events: schedules,
             firstDay: 1, // Start week on Monday
             height: 700,
+            eventDidMount: function(info) {
+                const props = info.event.extendedProps;
+                if (props.trainer && props.trainer !== "Tidak ditentukan" && props.trainer.trim() !== "") {
+                    const colors = getTrainerColor(props.trainer);
+                    info.el.style.setProperty('background-color', colors.bg, 'important');
+                    info.el.style.setProperty('color', colors.fg, 'important');
+                    info.el.style.setProperty('border-left', `4px solid ${colors.border}`, 'important');
+                    info.el.style.setProperty('border-top', 'none', 'important');
+                    info.el.style.setProperty('border-right', 'none', 'important');
+                    info.el.style.setProperty('border-bottom', 'none', 'important');
+
+                    const titleEl = info.el.querySelector('.fc-event-title');
+                    if (titleEl) {
+                        titleEl.style.setProperty('color', colors.fg, 'important');
+                    }
+                    const timeEl = info.el.querySelector('.fc-event-time');
+                    if (timeEl) {
+                        timeEl.style.setProperty('color', colors.fg, 'important');
+                    }
+                }
+                
+                if (props.status === 'Completed' || props.status === 'Cancelled') {
+                    info.el.style.setProperty('opacity', '0.6', 'important');
+                    const titleEl = info.el.querySelector('.fc-event-title');
+                    if (titleEl) {
+                        titleEl.style.setProperty('text-decoration', 'line-through', 'important');
+                    }
+                }
+            },
             dateClick: function(info) {
                 // Click blank cell: prefill modal and show
                 openAddTrainingModalWithDate(info.dateStr);
