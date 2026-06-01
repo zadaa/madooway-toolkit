@@ -1,0 +1,662 @@
+{{define "content"}}
+<!-- Include Select2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+<div class="tasks-page-header">
+	<div>
+		<p class="section-desc">Pantau dan kelola laporan masalah, perbaikan bug, dan permintaan fitur dari klien secara teratur.</p>
+	</div>
+	
+	<div style="display: flex; gap: 12px;">
+		<button onclick="exportToCSV()" class="btn btn-secondary">
+			<i class="fa-solid fa-file-csv" style="color: var(--color-primary);"></i>
+			<span>Ekspor CSV</span>
+		</button>
+		<button onclick="openAddTicketModal()" class="btn btn-primary">
+			<i class="fa-solid fa-plus"></i>
+			<span>Tiket Baru</span>
+		</button>
+	</div>
+</div>
+
+<!-- Filter Section -->
+<div class="filter-row-container">
+	<div class="filter-grid">
+		<div class="filter-input-wrapper search-group">
+			<i class="fa-solid fa-magnifying-glass"></i>
+			<input type="text" id="searchFilter" placeholder="Cari judul, keterangan, atau klien..." oninput="currentPage = 1; applyFilters()">
+		</div>
+		
+		<div class="filter-select-wrapper">
+			<select id="clientFilter" onchange="applyFilters()">
+				<option value="">Semua Klien</option>
+				{{range .Data.Clients}}
+				<option value="{{.Name}}">{{.Name}}</option>
+				{{end}}
+			</select>
+		</div>
+		
+		<div class="filter-select-wrapper">
+			<select id="categoryFilter" onchange="applyFilters()">
+				<option value="">Semua Kategori</option>
+				<option value="Bugs">Bugs</option>
+				<option value="Feature">Feature</option>
+				<option value="Undefined">Undefined</option>
+			</select>
+		</div>
+		
+		<div class="filter-select-wrapper">
+			<select id="statusFilter" onchange="applyFilters()">
+				<option value="">Semua Status</option>
+				<option value="Pending">Pending</option>
+				<option value="In Progress">In Progress</option>
+				<option value="Completed">Completed</option>
+			</select>
+		</div>
+
+		<div class="filter-input-wrapper date-group" style="display: flex; align-items: center; gap: 8px;">
+			<span style="font-size: 11px; color: var(--text-secondary); white-space: nowrap; font-weight: 500;">Dari:</span>
+			<input type="date" id="startDateFilter" onchange="currentPage = 1; applyFilters()" style="padding: 10px 12px; font-size: 12px;">
+		</div>
+		
+		<div class="filter-input-wrapper date-group" style="display: flex; align-items: center; gap: 8px;">
+			<span style="font-size: 11px; color: var(--text-secondary); white-space: nowrap; font-weight: 500;">S/D:</span>
+			<input type="date" id="endDateFilter" onchange="currentPage = 1; applyFilters()" style="padding: 10px 12px; font-size: 12px;">
+		</div>
+		
+		<button onclick="resetFilters()" class="btn-reset" title="Hapus Filter">
+			<i class="fa-solid fa-rotate-left"></i>
+		</button>
+	</div>
+</div>
+
+<!-- Table Output Container -->
+{{if not .Data.Tickets}}
+<div class="empty-state animate-fade-in" id="emptyStateNoData">
+	<i class="fa-solid fa-ticket empty-icon"></i>
+	<h3>Tidak Ada Tiket</h3>
+	<p>Belum ada tiket issue yang tercatat. Mulai buat tiket baru sekarang!</p>
+	<button onclick="openAddTicketModal()" class="btn btn-primary btn-sm">Mulai Buat Tiket</button>
+</div>
+{{else}}
+<div class="table-responsive has-pagination" id="tableResponsiveContainer">
+	<table class="premium-table" id="ticketTable">
+		<thead>
+			<tr>
+				<th style="width: 50px;">No.</th>
+				<th>Judul Tiket / Keterangan</th>
+				<th>Klien</th>
+				<th>Kategori</th>
+				<th>Lampiran File</th>
+				<th>Tgl. Issue</th>
+				<th>Tgl. Selesai</th>
+				<th>Link Tiket</th>
+				<th>Pelapor (User)</th>
+				<th>Status</th>
+				<th style="width: 100px; text-align: center;">Aksi</th>
+			</tr>
+		</thead>
+		<tbody>
+			{{range .Data.Tickets}}
+			<tr data-id="{{.ID}}"
+				data-title="{{.Title}}"
+				data-description="{{.Description}}"
+				data-client-id="{{.ClientID}}"
+				data-client-name="{{.ClientName}}"
+				data-category="{{.Category}}"
+				data-file-path="{{.FilePath}}"
+				data-issue-date="{{.FormattedIssueDate}}"
+				data-finished-date="{{.FormattedFinishedDate}}"
+				data-ticket-link="{{.TicketLink}}"
+				data-status="{{.Status}}">
+				
+				<td class="row-index" style="font-weight: 600; color: var(--text-muted);"></td>
+				
+				<td>
+					<div style="font-weight: 600; color: var(--text-primary);">{{.Title}}</div>
+					{{if .Description}}
+					<div style="font-size: 12px; color: var(--text-muted); margin-top: 4px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{.Description}}">
+						{{.Description}}
+					</div>
+					{{end}}
+				</td>
+				
+				<td>
+					<span style="font-weight: 500;"><i class="fa-solid fa-user-tie" style="color: var(--color-secondary); margin-right: 4px;"></i> {{.ClientName}}</span>
+				</td>
+				
+				<td>
+					<span class="badge badge-category {{.Category}}">{{.Category}}</span>
+				</td>
+				
+				<td>
+					{{if .FilePath}}
+					<a href="{{.FilePath}}" target="_blank" class="btn btn-secondary btn-sm" style="padding: 4px 8px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;">
+						<i class="fa-solid fa-download"></i>
+						<span>Unduh</span>
+					</a>
+					{{else}}
+					<span style="color: var(--text-muted); font-size: 12px; font-style: italic;">Tidak Ada</span>
+					{{end}}
+				</td>
+				
+				<td>
+					<div class="task-due-date">
+						<i class="fa-solid fa-calendar-day"></i>
+						<span>{{.PrettyIssueDate}}</span>
+					</div>
+				</td>
+				
+				<td>
+					<div class="task-due-date">
+						<i class="fa-solid fa-calendar-check" style="color: var(--color-secondary);"></i>
+						<span>{{.PrettyFinishedDate}}</span>
+					</div>
+				</td>
+				
+				<td>
+					{{if .TicketLink}}
+					<a href="{{.TicketLink}}" target="_blank" style="color: var(--color-primary); font-size: 12px; display: inline-flex; align-items: center; gap: 4px; text-decoration: none;" title="{{.TicketLink}}">
+						<i class="fa-solid fa-arrow-up-right-from-square"></i>
+						<span>Buka Tiket</span>
+					</a>
+					{{else}}
+					<span style="color: var(--text-muted); font-size: 12px; font-style: italic;">-</span>
+					{{end}}
+				</td>
+				
+				<td>
+					<div style="display: flex; align-items: center; gap: 6px;">
+						<i class="fa-solid fa-circle-user" style="color: var(--text-muted);"></i>
+						<span style="font-size: 12px; font-weight: 500;">{{.CreatorUsername}}</span>
+					</div>
+				</td>
+				
+				<td>
+					<span class="badge badge-status status-{{.Status}}">{{.Status}}</span>
+				</td>
+				
+				<td>
+					<div class="table-actions" style="justify-content: center;">
+						<button class="btn-action-edit" title="Edit Tiket"
+								data-id="{{.ID}}"
+								data-title="{{.Title}}"
+								data-description="{{.Description}}"
+								data-client-id="{{.ClientID}}"
+								data-category="{{.Category}}"
+								data-file-path="{{.FilePath}}"
+								data-issue-date="{{.FormattedIssueDate}}"
+								data-finished-date="{{.FormattedFinishedDate}}"
+								data-ticket-link="{{.TicketLink}}"
+								data-status="{{.Status}}"
+								onclick="openEditTicketModal(this)">
+							<i class="fa-solid fa-pen-to-square"></i>
+						</button>
+						
+						<form action="/tickets/delete" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus tiket ini?')" style="display:inline;">
+							<input type="hidden" name="id" value="{{.ID}}">
+							<button type="submit" class="btn-action-delete" title="Hapus Tiket">
+								<i class="fa-solid fa-trash-can"></i>
+							</button>
+						</form>
+					</div>
+				</td>
+			</tr>
+			{{end}}
+		</tbody>
+	</table>
+</div>
+
+<!-- Pagination Controls -->
+<div class="pagination-container" id="paginationContainer" style="display: none;">
+	<div class="pagination-info" id="paginationInfo">Menampilkan 0-0 dari 0 tiket</div>
+	<div class="pagination-nav" id="paginationNav"></div>
+</div>
+
+<!-- Empty state overlay inside filter (shown when visibleCount === 0) -->
+<div class="empty-state animate-fade-in" id="tableEmptyState" style="display: none;">
+	<i class="fa-solid fa-magnifying-glass empty-icon"></i>
+	<h3>Tidak Ada Tiket Ditemukan</h3>
+	<p>Tidak ada tiket yang cocok dengan filter pencarian Anda. Silakan ubah filter atau kata kunci Anda.</p>
+	<button onclick="resetFilters()" class="btn btn-secondary btn-sm">Reset Filter</button>
+</div>
+{{end}}
+
+<!-- Unified Ticket Modal (Create & Edit) -->
+<div id="ticketModal" class="modal">
+	<div class="modal-content animate-slide-in">
+		<div class="modal-header">
+			<h3 id="modalTitle">Tambah Tiket Baru</h3>
+			<span class="close-modal" onclick="closeTicketModal()">&times;</span>
+		</div>
+		<form id="ticketForm" action="/tickets/create" method="POST" enctype="multipart/form-data">
+			<input type="hidden" id="ticketID" name="id">
+			
+			<div class="form-row">
+				<div class="form-group col-half">
+					<label for="ticketClientID">Klien Klien <span style="color:red;">*</span></label>
+					<select id="ticketClientID" name="client_id" required>
+						<option value="">Pilih Klien...</option>
+						{{range .Data.Clients}}
+						<option value="{{.ID}}">{{.Name}}</option>
+						{{end}}
+					</select>
+				</div>
+				
+				<div class="form-group col-half">
+					<label for="ticketCategory">Kategori <span style="color:red;">*</span></label>
+					<select id="ticketCategory" name="category" required>
+						<option value="Bugs">Bugs</option>
+						<option value="Feature">Feature</option>
+						<option value="Undefined">Undefined</option>
+					</select>
+				</div>
+			</div>
+
+			<div class="form-group">
+				<label for="ticketTitle">Judul Masalah/Feedback <span style="color:red;">*</span></label>
+				<input type="text" id="ticketTitle" name="title" required placeholder="Contoh: Modul absensi error saat upload foto">
+			</div>
+
+			<div class="form-group">
+				<label for="ticketDescription">Keterangan / Detail Masalah</label>
+				<textarea id="ticketDescription" name="description" placeholder="Jelaskan kronologi atau detail masalah secara lengkap..."></textarea>
+			</div>
+
+			<div class="form-row">
+				<div class="form-group col-half">
+					<label for="ticketStatus">Status</label>
+					<select id="ticketStatus" name="status" onchange="toggleFinishedDate()">
+						<option value="Pending">Pending</option>
+						<option value="In Progress">In Progress</option>
+						<option value="Completed">Completed</option>
+					</select>
+				</div>
+
+				<div class="form-group col-half">
+					<label for="ticketIssueDate">Tanggal Laporan (Issue Date) <span style="color:red;">*</span></label>
+					<input type="date" id="ticketIssueDate" name="issue_date" required>
+				</div>
+			</div>
+
+			<div class="form-row">
+				<div class="form-group col-half" id="finishedDateGroup" style="display: none;">
+					<label for="ticketFinishedDate">Tanggal Selesai (Finished Date)</label>
+					<input type="date" id="ticketFinishedDate" name="finished_date">
+				</div>
+
+				<div class="form-group col-half">
+					<label for="ticketLink">Link Tiket Eksternal (Optional)</label>
+					<input type="url" id="ticketLink" name="ticket_link" placeholder="Contoh: https://clickup.com/tasks/xyz">
+				</div>
+			</div>
+
+			<div class="form-group">
+				<label for="ticketUploadFile">Lampiran File Pendukung</label>
+				<input type="file" id="ticketUploadFile" name="upload_file" style="padding: 8px 12px; font-size: 13px;">
+				<div id="fileInfoText" style="font-size: 12px; color: var(--text-muted); margin-top: 6px; display: none;"></div>
+			</div>
+
+			<div class="modal-footer">
+				<button type="button" class="btn btn-secondary" onclick="closeTicketModal()">Batal</button>
+				<button type="submit" class="btn btn-primary">Simpan</button>
+			</div>
+		</form>
+	</div>
+</div>
+
+<!-- Include jQuery and Select2 JS -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<style>
+	/* Badge Category Custom Styles */
+	.badge-category.Bugs {
+		background: rgba(239, 68, 68, 0.15);
+		color: #ef4444;
+		border: 1px solid rgba(239, 68, 68, 0.3);
+	}
+	.badge-category.Feature {
+		background: rgba(34, 197, 94, 0.15);
+		color: #22c55e;
+		border: 1px solid rgba(34, 197, 94, 0.3);
+	}
+	.badge-category.Undefined {
+		background: rgba(107, 114, 128, 0.15);
+		color: #9ca3af;
+		border: 1px solid rgba(107, 114, 128, 0.3);
+	}
+</style>
+
+<script>
+	// Pagination variables
+	var currentPage = 1;
+	var pageSize = 25;
+
+	$(document).ready(function() {
+		// Initialize Select2 inside modal
+		$('#ticketClientID, #ticketCategory, #ticketStatus').select2({
+			dropdownParent: $('#ticketModal'),
+			width: '100%'
+		});
+
+		// Initialize Select2 for filters
+		$('#clientFilter, #categoryFilter, #statusFilter').select2({
+			width: '100%'
+		});
+
+		// Bind filter event change for Select2
+		$('#clientFilter, #categoryFilter, #statusFilter').on('change', function() {
+			currentPage = 1;
+			applyFilters();
+		});
+
+		// Apply filters initially on page load
+		applyFilters();
+	});
+
+	function toggleFinishedDate() {
+		const status = document.getElementById('ticketStatus').value;
+		const group = document.getElementById('finishedDateGroup');
+		if (status === 'Completed') {
+			group.style.display = 'block';
+			// Set default to today if empty
+			const finishedInput = document.getElementById('ticketFinishedDate');
+			if (!finishedInput.value) {
+				const localDate = new Date();
+				const year = localDate.getFullYear();
+				const month = String(localDate.getMonth() + 1).padStart(2, '0');
+				const day = String(localDate.getDate()).padStart(2, '0');
+				finishedInput.value = `${year}-${month}-${day}`;
+			}
+		} else {
+			group.style.display = 'none';
+			document.getElementById('ticketFinishedDate').value = '';
+		}
+	}
+
+	function applyFilters() {
+		const searchFilterEl = document.getElementById('searchFilter');
+		if (!searchFilterEl) return;
+
+		const searchVal = searchFilterEl.value.toLowerCase().trim();
+		const clientVal = document.getElementById('clientFilter').value;
+		const categoryVal = document.getElementById('categoryFilter').value;
+		const statusVal = document.getElementById('statusFilter').value;
+		const startDateVal = document.getElementById('startDateFilter').value;
+		const endDateVal = document.getElementById('endDateFilter').value;
+
+		const rows = document.querySelectorAll('#ticketTable tbody tr');
+		let matchedRows = [];
+
+		rows.forEach(row => {
+			const title = row.getAttribute('data-title').toLowerCase();
+			const description = row.getAttribute('data-description').toLowerCase();
+			const clientName = row.getAttribute('data-client-name') || '';
+			const category = row.getAttribute('data-category');
+			const status = row.getAttribute('data-status');
+			const issueDate = row.getAttribute('data-issue-date'); // "YYYY-MM-DD"
+
+			let match = true;
+
+			// Search Filter (Title, Description, Client Name)
+			if (searchVal !== '') {
+				if (!title.includes(searchVal) && !description.includes(searchVal) && !clientName.toLowerCase().includes(searchVal)) {
+					match = false;
+				}
+			}
+
+			// Client Filter
+			if (clientVal !== '' && clientName !== clientVal) {
+				match = false;
+			}
+
+			// Category Filter
+			if (categoryVal !== '' && category !== categoryVal) {
+				match = false;
+			}
+
+			// Status Filter
+			if (statusVal !== '' && status !== statusVal) {
+				match = false;
+			}
+
+			// Date Filter
+			if (startDateVal !== '' && issueDate < startDateVal) {
+				match = false;
+			}
+			if (endDateVal !== '' && issueDate > endDateVal) {
+				match = false;
+			}
+
+			if (match) {
+				matchedRows.push(row);
+			} else {
+				row.style.display = 'none';
+			}
+		});
+
+		window.currentMatchedRows = matchedRows;
+
+		const totalRows = matchedRows.length;
+		const totalPages = Math.ceil(totalRows / pageSize) || 1;
+
+		if (currentPage > totalPages) currentPage = totalPages;
+		if (currentPage < 1) currentPage = 1;
+
+		const startIndex = (currentPage - 1) * pageSize;
+		const endIndex = Math.min(startIndex + pageSize, totalRows);
+
+		matchedRows.forEach((row, idx) => {
+			if (idx >= startIndex && idx < endIndex) {
+				row.style.display = '';
+			} else {
+				row.style.display = 'none';
+			}
+			row.querySelector('.row-index').textContent = idx + 1;
+		});
+
+		// Render Pagination Controls
+		const paginationContainer = document.getElementById('paginationContainer');
+		if (totalRows > 0) {
+			paginationContainer.style.display = 'flex';
+			document.getElementById('paginationInfo').textContent = 
+				`Menampilkan ${totalRows > 0 ? startIndex + 1 : 0}-${endIndex} dari ${totalRows} tiket`;
+			
+			const navEl = document.getElementById('paginationNav');
+			let navHtml = '';
+			
+			navHtml += `<button class="pagination-btn" ${currentPage === 1 ? 'disabled' : ''} onclick="changePage(${currentPage - 1})"><i class="fa-solid fa-angle-left"></i></button>`;
+			
+			const maxVisiblePages = 5;
+			let startPage = Math.max(1, currentPage - 2);
+			let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+			if (endPage - startPage < maxVisiblePages - 1) {
+				startPage = Math.max(1, endPage - maxVisiblePages + 1);
+			}
+			
+			if (startPage > 1) {
+				navHtml += `<button class="pagination-btn" onclick="changePage(1)">1</button>`;
+				if (startPage > 2) {
+					navHtml += `<span style="color: var(--text-muted); display: inline-flex; align-items: center; padding: 0 4px;">...</span>`;
+				}
+			}
+			
+			for (let p = startPage; p <= endPage; p++) {
+				navHtml += `<button class="pagination-btn ${p === currentPage ? 'active' : ''}" onclick="changePage(${p})">${p}</button>`;
+			}
+			
+			if (endPage < totalPages) {
+				if (endPage < totalPages - 1) {
+					navHtml += `<span style="color: var(--text-muted); display: inline-flex; align-items: center; padding: 0 4px;">...</span>`;
+				}
+				navHtml += `<button class="pagination-btn" onclick="changePage(${totalPages})">${totalPages}</button>`;
+			}
+			
+			navHtml += `<button class="pagination-btn" ${currentPage === totalPages ? 'disabled' : ''} onclick="changePage(${currentPage + 1})"><i class="fa-solid fa-angle-right"></i></button>`;
+			
+			navEl.innerHTML = navHtml;
+		} else {
+			paginationContainer.style.display = 'none';
+		}
+
+		const emptyState = document.getElementById('tableEmptyState');
+		const tableContainer = document.getElementById('tableResponsiveContainer');
+
+		if (totalRows === 0) {
+			if (emptyState) emptyState.style.display = 'flex';
+			if (tableContainer) tableContainer.style.display = 'none';
+		} else {
+			if (emptyState) emptyState.style.display = 'none';
+			if (tableContainer) tableContainer.style.display = 'block';
+		}
+	}
+
+	function changePage(p) {
+		currentPage = p;
+		applyFilters();
+		const tableEl = document.getElementById('tableResponsiveContainer');
+		if (tableEl) {
+			tableEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+		}
+	}
+
+	function resetFilters() {
+		document.getElementById('searchFilter').value = '';
+		document.getElementById('startDateFilter').value = '';
+		document.getElementById('endDateFilter').value = '';
+		
+		$('#clientFilter').val('').trigger('change');
+		$('#categoryFilter').val('').trigger('change');
+		$('#statusFilter').val('').trigger('change');
+
+		currentPage = 1;
+		applyFilters();
+	}
+
+	function openAddTicketModal() {
+		const modal = document.getElementById('ticketModal');
+		const form = document.getElementById('ticketForm');
+		const modalTitle = document.getElementById('modalTitle');
+		const ticketID = document.getElementById('ticketID');
+		
+		modalTitle.textContent = "Tambah Tiket Baru";
+		form.action = "/tickets/create";
+		ticketID.value = "";
+		form.reset();
+
+		// Set default tgl_issue to today
+		const localDate = new Date();
+		const year = localDate.getFullYear();
+		const month = String(localDate.getMonth() + 1).padStart(2, '0');
+		const day = String(localDate.getDate()).padStart(2, '0');
+		document.getElementById('ticketIssueDate').value = `${year}-${month}-${day}`;
+
+		// Reset Select2 fields
+		$('#ticketClientID').val('').trigger('change');
+		$('#ticketCategory').val('Bugs').trigger('change');
+		$('#ticketStatus').val('Pending').trigger('change');
+		
+		document.getElementById('fileInfoText').style.display = "none";
+		toggleFinishedDate();
+
+		modal.style.display = "flex";
+	}
+
+	function openEditTicketModal(btn) {
+		const modal = document.getElementById('ticketModal');
+		const form = document.getElementById('ticketForm');
+		const modalTitle = document.getElementById('modalTitle');
+		
+		modalTitle.textContent = "Edit Tiket";
+		form.action = "/tickets/update";
+		form.reset();
+
+		document.getElementById('ticketID').value = btn.getAttribute('data-id');
+		document.getElementById('ticketTitle').value = btn.getAttribute('data-title');
+		document.getElementById('ticketDescription').value = btn.getAttribute('data-description') || "";
+		document.getElementById('ticketIssueDate').value = btn.getAttribute('data-issue-date');
+		document.getElementById('ticketFinishedDate').value = btn.getAttribute('data-finished-date') || "";
+		document.getElementById('ticketLink').value = btn.getAttribute('data-ticket-link') || "";
+
+		// Populate Select2
+		$('#ticketClientID').val(btn.getAttribute('data-client-id')).trigger('change');
+		$('#ticketCategory').val(btn.getAttribute('data-category')).trigger('change');
+		$('#ticketStatus').val(btn.getAttribute('data-status')).trigger('change');
+
+		// File attachments check
+		const filePath = btn.getAttribute('data-file-path') || "";
+		const fileInfoText = document.getElementById('fileInfoText');
+		if (filePath !== "") {
+			const filename = filePath.substring(filePath.lastIndexOf('/') + 1);
+			fileInfoText.innerHTML = `<i class="fa-solid fa-file-arrow-down" style="color:var(--color-primary);"></i> File Lampiran Saat Ini: <a href="${filePath}" target="_blank" style="color:var(--color-primary);text-decoration:underline;">${filename}</a> <span style="font-size:11px;opacity:0.75;">(Unggah file baru untuk mengganti)</span>`;
+			fileInfoText.style.display = "block";
+		} else {
+			fileInfoText.style.display = "none";
+		}
+
+		toggleFinishedDate();
+		modal.style.display = "flex";
+	}
+
+	function closeTicketModal() {
+		document.getElementById('ticketModal').style.display = "none";
+	}
+
+	// Close modal when clicking outside content
+	window.onclick = function(event) {
+		const modal = document.getElementById('ticketModal');
+		if (event.target === modal) {
+			closeTicketModal();
+		}
+	}
+
+	function exportToCSV() {
+		if (!window.currentMatchedRows || window.currentMatchedRows.length === 0) {
+			alert('Tidak ada data tiket untuk diekspor.');
+			return;
+		}
+
+		let csvContent = "\uFEFF"; // UTF-8 BOM
+		csvContent += "No,Judul Tiket,Keterangan,Klien,Kategori,Tgl Issue,Tgl Selesai,Link Tiket,Pelapor,Status\r\n";
+
+		window.currentMatchedRows.forEach((row, index) => {
+			const title = row.getAttribute('data-title') || '';
+			const description = row.getAttribute('data-description') || '';
+			const clientName = row.getAttribute('data-client-name') || '';
+			const category = row.getAttribute('data-category') || '';
+			const issueDate = row.getAttribute('data-issue-date') || '';
+			const finishedDate = row.getAttribute('data-finished-date') || '-';
+			const ticketLink = row.getAttribute('data-ticket-link') || '';
+			// Find pelapor text in cells
+			const pelapor = row.cells[8].innerText.trim();
+			const status = row.getAttribute('data-status') || '';
+
+			const escapeCSV = (text) => {
+				if (text === null || text === undefined) return '';
+				let formatted = text.replace(/"/g, '""');
+				if (formatted.includes(',') || formatted.includes('\n') || formatted.includes('\r') || formatted.includes('"')) {
+					formatted = `"${formatted}"`;
+				}
+				return formatted;
+			};
+
+			csvContent += `${index + 1},${escapeCSV(title)},${escapeCSV(description)},${escapeCSV(clientName)},${escapeCSV(category)},${escapeCSV(issueDate)},${escapeCSV(finishedDate)},${escapeCSV(ticketLink)},${escapeCSV(pelapor)},${escapeCSV(status)}\r\n`;
+		});
+
+		const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+		const link = document.createElement("a");
+		const url = URL.createObjectURL(blob);
+		
+		const localDate = new Date();
+		const dateStr = localDate.getFullYear() + String(localDate.getMonth() + 1).padStart(2, '0') + String(localDate.getDate()).padStart(2, '0');
+		
+		link.setAttribute("href", url);
+		link.setAttribute("download", `daftar_tiket_${dateStr}.csv`);
+		link.style.visibility = 'hidden';
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+	}
+</script>
+{{end}}

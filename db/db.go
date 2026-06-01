@@ -358,4 +358,37 @@ func runMigrations() {
 		log.Fatalf("Error creating app_performances table: %v", err)
 	}
 	log.Println("Table 'app_performances' verified/created")
+
+	// Create Tickets table
+	ticketsTableQuery := `
+	CREATE TABLE IF NOT EXISTS tickets (
+		id INT AUTO_INCREMENT PRIMARY KEY,
+		client_id INT NOT NULL,
+		title VARCHAR(255) NOT NULL,
+		description TEXT,
+		user_id INT NOT NULL,
+		file_path VARCHAR(255) NULL,
+		issue_date DATE NOT NULL,
+		category VARCHAR(50) NOT NULL,
+		ticket_link VARCHAR(255) NULL,
+		status VARCHAR(50) NOT NULL DEFAULT 'Pending',
+		finished_date DATE NULL,
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+		FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE,
+		FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+	) ENGINE=InnoDB;`
+
+	_, err = DB.Exec(ticketsTableQuery)
+	if err != nil {
+		log.Fatalf("Error creating tickets table: %v", err)
+	}
+	log.Println("Table 'tickets' verified/created")
+
+	// Ensure uploads directory exists for tickets
+	err = os.MkdirAll("static/uploads/tickets", 0755)
+	if err != nil {
+		log.Fatalf("Error creating ticket uploads directory: %v", err)
+	}
+	log.Println("Directory 'static/uploads/tickets' verified/created")
 }

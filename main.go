@@ -41,6 +41,11 @@ func main() {
 	mux.HandleFunc("POST /tasks/update", middleware.AuthRequired(handlers.UpdateTask))
 	mux.HandleFunc("POST /tasks/delete", middleware.AuthRequired(handlers.DeleteTask))
 
+	mux.HandleFunc("GET /tickets", middleware.AuthRequired(handlers.ListTickets))
+	mux.HandleFunc("POST /tickets/create", middleware.AuthRequired(handlers.CreateTicket))
+	mux.HandleFunc("POST /tickets/update", middleware.AuthRequired(handlers.UpdateTicket))
+	mux.HandleFunc("POST /tickets/delete", middleware.AuthRequired(handlers.DeleteTicket))
+
 	mux.HandleFunc("GET /clients", middleware.AuthRequired(handlers.ListClients))
 	mux.HandleFunc("POST /clients/create", middleware.AuthRequired(handlers.CreateClient))
 	mux.HandleFunc("POST /clients/update", middleware.AuthRequired(handlers.UpdateClient))
