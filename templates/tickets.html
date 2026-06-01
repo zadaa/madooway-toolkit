@@ -93,7 +93,7 @@
 				<th>Link Tiket</th>
 				<th>Pelapor (User)</th>
 				<th>Status</th>
-				<th style="width: 100px; text-align: center;">Aksi</th>
+				<th style="width: 140px; text-align: center;">Aksi</th>
 			</tr>
 		</thead>
 		<tbody>
@@ -178,6 +178,23 @@
 				
 				<td>
 					<div class="table-actions" style="justify-content: center;">
+						<!-- Detail & Thread Diskusi Button -->
+						<button class="btn-action-view" title="Detail & Diskusi"
+								data-id="{{.ID}}"
+								data-title="{{.Title}}"
+								data-description="{{.Description}}"
+								data-client-id="{{.ClientID}}"
+								data-client-name="{{.ClientName}}"
+								data-category="{{.Category}}"
+								data-file-path="{{.FilePath}}"
+								data-issue-date="{{.FormattedIssueDate}}"
+								data-finished-date="{{.FormattedFinishedDate}}"
+								data-ticket-link="{{.TicketLink}}"
+								data-status="{{.Status}}"
+								onclick="openTicketDetailModal(this)">
+							<i class="fa-solid fa-comments"></i>
+						</button>
+
 						<button class="btn-action-edit" title="Edit Tiket"
 								data-id="{{.ID}}"
 								data-title="{{.Title}}"
@@ -305,11 +322,100 @@
 	</div>
 </div>
 
+<!-- Modal Detail & Diskusi (Threads) -->
+<div id="ticketDetailModal" class="modal">
+	<div class="modal-content animate-slide-in" style="max-width: 800px; max-height: 90vh; display: flex; flex-direction: column;">
+		<div class="modal-header">
+			<div>
+				<h3 style="margin: 0;">Detail & Diskusi Tiket</h3>
+				<span id="detailClientName" style="font-size: 13px; color: var(--color-primary); font-weight: 600;"></span>
+			</div>
+			<span class="close-modal" onclick="closeTicketDetailModal()">&times;</span>
+		</div>
+		
+		<div style="flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 20px;">
+			<!-- Ticket Detail Info Area -->
+			<div class="ticket-detail-card" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); padding: 16px; border-radius: 10px;">
+				<h4 id="detailTicketTitle" style="margin: 0 0 10px 0; font-size: 16px; color: var(--text-primary);"></h4>
+				<p id="detailTicketDescription" style="margin: 0 0 14px 0; font-size: 13px; color: var(--text-secondary); line-height: 1.5; white-space: pre-wrap;"></p>
+				
+				<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; font-size: 12px; border-top: 1px dashed var(--border-color); padding-top: 12px;">
+					<div><strong>Kategori:</strong> <span id="detailCategory" class="badge badge-category"></span></div>
+					<div><strong>Status:</strong> <span id="detailStatus" class="badge badge-status"></span></div>
+					<div><strong>Tgl. Laporan:</strong> <span id="detailIssueDate" style="color: var(--text-secondary);"></span></div>
+					<div><strong>Tgl. Selesai:</strong> <span id="detailFinishedDate" style="color: var(--text-secondary);"></span></div>
+					<div>
+						<strong>File Lampiran:</strong> 
+						<span id="detailAttachmentArea"></span>
+					</div>
+					<div>
+						<strong>Link Tiket:</strong> 
+						<span id="detailLinkArea"></span>
+					</div>
+				</div>
+			</div>
+
+			<!-- Chat Thread Area -->
+			<div>
+				<h4 style="margin: 0 0 10px 0; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+					<i class="fa-solid fa-comments" style="color: var(--color-primary);"></i>
+					<span>Threads Diskusi</span>
+				</h4>
+				
+				<!-- Scrollable Chat History Container -->
+				<div class="chat-history-container" id="chatHistoryContainer">
+					<!-- Chat bubbles loaded dynamically via Javascript -->
+				</div>
+
+				<!-- Chat Input Form -->
+				<form id="chatInputForm" onsubmit="submitThreadMessage(event)" enctype="multipart/form-data">
+					<input type="hidden" name="ticket_id" id="threadTicketID">
+					<div class="chat-input-wrapper">
+						<!-- Text Message input -->
+						<textarea name="message" id="threadMessageInput" rows="1" placeholder="Tulis tanggapan atau komentar..." required></textarea>
+						
+						<!-- Attachment Button -->
+						<div class="chat-attachment-btn" title="Lampirkan File">
+							<i class="fa-solid fa-paperclip"></i>
+							<input type="file" name="upload_file" id="threadFileInput" onchange="updateFileLabel(this)">
+						</div>
+						
+						<!-- Send Button -->
+						<button type="submit" class="btn btn-primary" style="height: 40px; padding: 0 16px; border-radius: 8px;">
+							<i class="fa-solid fa-paper-plane"></i>
+						</button>
+					</div>
+					<!-- Selected file preview name label -->
+					<div id="threadFileLabel" style="font-size: 12px; color: var(--color-primary); margin-top: 6px; display: none; padding-left: 5px;"></div>
+				</form>
+			</div>
+		</div>
+	</div>
+</div>
+
 <!-- Include jQuery and Select2 JS -->
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 <style>
+	/* Styles for View Action Button */
+	.btn-action-view {
+		background: rgba(6, 182, 212, 0.15);
+		color: #06b6d4;
+		border: 1px solid rgba(6, 182, 212, 0.3);
+		padding: 6px 10px;
+		border-radius: 6px;
+		cursor: pointer;
+		transition: all 0.2s ease;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+	}
+	.btn-action-view:hover {
+		background: #06b6d4;
+		color: #030303;
+	}
+
 	/* Badge Category Custom Styles */
 	.badge-category.Bugs {
 		background: rgba(239, 68, 68, 0.15);
@@ -326,9 +432,143 @@
 		color: #9ca3af;
 		border: 1px solid rgba(107, 114, 128, 0.3);
 	}
+
+	/* Chat / Thread UI styles */
+	.chat-history-container {
+		height: 280px;
+		overflow-y: auto;
+		padding: 16px;
+		background: rgba(0, 0, 0, 0.15);
+		border-radius: 10px;
+		border: 1px solid var(--border-color);
+		margin-bottom: 12px;
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+	.chat-message {
+		display: flex;
+		flex-direction: column;
+		max-width: 75%;
+	}
+	.chat-message-left {
+		align-self: flex-start;
+		align-items: flex-start;
+	}
+	.chat-message-right {
+		align-self: flex-end;
+		align-items: flex-end;
+	}
+	.chat-meta {
+		font-size: 11px;
+		color: var(--text-muted);
+		margin-bottom: 4px;
+		display: flex;
+		gap: 8px;
+	}
+	.chat-meta .sender-name {
+		font-weight: 600;
+		color: var(--text-secondary);
+	}
+	.chat-message-right .chat-meta .sender-name {
+		color: var(--color-primary);
+	}
+	.chat-bubble {
+		padding: 8px 12px;
+		border-radius: 12px;
+		font-size: 12.5px;
+		line-height: 1.4;
+		word-break: break-word;
+	}
+	.chat-bubble-left {
+		background: var(--bg-input);
+		color: var(--text-primary);
+		border: 1px solid var(--border-color);
+		border-top-left-radius: 2px;
+	}
+	.chat-bubble-right {
+		background: rgba(255, 123, 0, 0.12);
+		color: var(--text-primary);
+		border: 1px solid rgba(255, 123, 0, 0.35);
+		border-top-right-radius: 2px;
+	}
+	.light-mode .chat-bubble-right {
+		background: rgba(255, 123, 0, 0.06);
+		border: 1px solid rgba(255, 123, 0, 0.25);
+	}
+	.chat-attachment {
+		margin-top: 6px;
+		padding: 5px 8px;
+		background: rgba(0, 0, 0, 0.1);
+		border-radius: 5px;
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		font-size: 11px;
+		color: var(--text-secondary);
+		text-decoration: none;
+		border: 1px solid var(--border-color);
+		transition: all 0.2s ease;
+	}
+	.chat-attachment:hover {
+		background: rgba(255, 123, 0, 0.08);
+		border-color: var(--color-primary);
+		color: var(--color-primary);
+	}
+	
+	/* Chat Form */
+	.chat-input-wrapper {
+		display: flex;
+		gap: 10px;
+		align-items: flex-end;
+		border-top: 1px solid var(--border-color);
+		padding-top: 12px;
+	}
+	.chat-input-wrapper textarea {
+		flex: 1;
+		min-height: 38px;
+		max-height: 80px;
+		padding: 8px 12px;
+		border-radius: 8px;
+		resize: none;
+		font-size: 13px;
+		background: var(--bg-input);
+		border: 1px solid var(--border-color);
+		color: var(--text-primary);
+	}
+	.chat-attachment-btn {
+		position: relative;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 38px;
+		height: 38px;
+		border-radius: 8px;
+		background: var(--bg-input);
+		border: 1px solid var(--border-color);
+		cursor: pointer;
+		color: var(--text-secondary);
+		transition: all 0.2s ease;
+	}
+	.chat-attachment-btn:hover {
+		border-color: var(--color-primary);
+		color: var(--color-primary);
+	}
+	.chat-attachment-btn input[type="file"] {
+		position: absolute;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+		opacity: 0;
+		cursor: pointer;
+	}
 </style>
 
 <script>
+	// Define session user ID from Golang view data
+	const currentUserID = {{if .User}}{{.User.ID}}{{else}}0{{end}};
+
 	// Pagination variables
 	var currentPage = 1;
 	var pageSize = 25;
@@ -360,7 +600,6 @@
 		const group = document.getElementById('finishedDateGroup');
 		if (status === 'Completed') {
 			group.style.display = 'block';
-			// Set default to today if empty
 			const finishedInput = document.getElementById('ticketFinishedDate');
 			if (!finishedInput.value) {
 				const localDate = new Date();
@@ -395,33 +634,28 @@
 			const clientName = row.getAttribute('data-client-name') || '';
 			const category = row.getAttribute('data-category');
 			const status = row.getAttribute('data-status');
-			const issueDate = row.getAttribute('data-issue-date'); // "YYYY-MM-DD"
+			const issueDate = row.getAttribute('data-issue-date');
 
 			let match = true;
 
-			// Search Filter (Title, Description, Client Name)
 			if (searchVal !== '') {
 				if (!title.includes(searchVal) && !description.includes(searchVal) && !clientName.toLowerCase().includes(searchVal)) {
 					match = false;
 				}
 			}
 
-			// Client Filter
 			if (clientVal !== '' && clientName !== clientVal) {
 				match = false;
 			}
 
-			// Category Filter
 			if (categoryVal !== '' && category !== categoryVal) {
 				match = false;
 			}
 
-			// Status Filter
 			if (statusVal !== '' && status !== statusVal) {
 				match = false;
 			}
 
-			// Date Filter
 			if (startDateVal !== '' && issueDate < startDateVal) {
 				match = false;
 			}
@@ -456,7 +690,6 @@
 			row.querySelector('.row-index').textContent = idx + 1;
 		});
 
-		// Render Pagination Controls
 		const paginationContainer = document.getElementById('paginationContainer');
 		if (totalRows > 0) {
 			paginationContainer.style.display = 'flex';
@@ -545,14 +778,12 @@
 		ticketID.value = "";
 		form.reset();
 
-		// Set default tgl_issue to today
 		const localDate = new Date();
 		const year = localDate.getFullYear();
 		const month = String(localDate.getMonth() + 1).padStart(2, '0');
 		const day = String(localDate.getDate()).padStart(2, '0');
 		document.getElementById('ticketIssueDate').value = `${year}-${month}-${day}`;
 
-		// Reset Select2 fields
 		$('#ticketClientID').val('').trigger('change');
 		$('#ticketCategory').val('Bugs').trigger('change');
 		$('#ticketStatus').val('Pending').trigger('change');
@@ -579,12 +810,10 @@
 		document.getElementById('ticketFinishedDate').value = btn.getAttribute('data-finished-date') || "";
 		document.getElementById('ticketLink').value = btn.getAttribute('data-ticket-link') || "";
 
-		// Populate Select2
 		$('#ticketClientID').val(btn.getAttribute('data-client-id')).trigger('change');
 		$('#ticketCategory').val(btn.getAttribute('data-category')).trigger('change');
 		$('#ticketStatus').val(btn.getAttribute('data-status')).trigger('change');
 
-		// File attachments check
 		const filePath = btn.getAttribute('data-file-path') || "";
 		const fileInfoText = document.getElementById('fileInfoText');
 		if (filePath !== "") {
@@ -603,11 +832,177 @@
 		document.getElementById('ticketModal').style.display = "none";
 	}
 
-	// Close modal when clicking outside content
+	// DETAIL & DISCUSSION THREAD MODAL LOGIC
+	function openTicketDetailModal(btn) {
+		const modal = document.getElementById('ticketDetailModal');
+		const ticketID = btn.getAttribute('data-id');
+
+		document.getElementById('threadTicketID').value = ticketID;
+		document.getElementById('detailClientName').textContent = btn.getAttribute('data-client-name');
+		document.getElementById('detailTicketTitle').textContent = btn.getAttribute('data-title');
+		document.getElementById('detailTicketDescription').textContent = btn.getAttribute('data-description') || "Tidak ada keterangan.";
+
+		// Labels & Badges
+		const category = btn.getAttribute('data-category');
+		const status = btn.getAttribute('data-status');
+		
+		const categoryEl = document.getElementById('detailCategory');
+		categoryEl.className = `badge badge-category ${category}`;
+		categoryEl.textContent = category;
+
+		const statusEl = document.getElementById('detailStatus');
+		statusEl.className = `badge badge-status status-${status}`;
+		statusEl.textContent = status;
+
+		document.getElementById('detailIssueDate').textContent = btn.getAttribute('data-issue-date');
+		
+		const finishedDate = btn.getAttribute('data-finished-date');
+		document.getElementById('detailFinishedDate').textContent = finishedDate || "-";
+
+		// Main Ticket Attachment Link
+		const filePath = btn.getAttribute('data-file-path') || "";
+		const attachmentArea = document.getElementById('detailAttachmentArea');
+		if (filePath !== "") {
+			const filename = filePath.substring(filePath.lastIndexOf('/') + 1);
+			attachmentArea.innerHTML = `<a href="${filePath}" target="_blank" style="color:var(--color-primary); text-decoration:none; font-weight:600;"><i class="fa-solid fa-file-arrow-down"></i> ${filename}</a>`;
+		} else {
+			attachmentArea.innerHTML = `<span style="color:var(--text-muted); font-style:italic;">Tidak Ada</span>`;
+		}
+
+		// External Ticket Link
+		const ticketLink = btn.getAttribute('data-ticket-link') || "";
+		const linkArea = document.getElementById('detailLinkArea');
+		if (ticketLink !== "") {
+			linkArea.innerHTML = `<a href="${ticketLink}" target="_blank" style="color:var(--color-primary); text-decoration:none; font-weight:600;"><i class="fa-solid fa-arrow-up-right-from-square"></i> Kunjungi Tiket</a>`;
+		} else {
+			linkArea.innerHTML = `<span style="color:var(--text-muted); font-style:italic;">Tidak Ada</span>`;
+		}
+
+		// Reset thread input form fields
+		document.getElementById('threadMessageInput').value = "";
+		document.getElementById('threadFileInput').value = "";
+		document.getElementById('threadFileLabel').style.display = "none";
+
+		// Load messages via AJAX
+		fetchMessages(ticketID);
+
+		modal.style.display = "flex";
+	}
+
+	function closeTicketDetailModal() {
+		document.getElementById('ticketDetailModal').style.display = "none";
+	}
+
+	function updateFileLabel(input) {
+		const label = document.getElementById('threadFileLabel');
+		if (input.files && input.files.length > 0) {
+			label.innerHTML = `<i class="fa-solid fa-paperclip"></i> Terlampir: <strong>${input.files[0].name}</strong>`;
+			label.style.display = "block";
+		} else {
+			label.style.display = "none";
+		}
+	}
+
+	function fetchMessages(ticketID) {
+		const container = document.getElementById('chatHistoryContainer');
+		container.innerHTML = `<div style="text-align:center; padding:20px; font-size:12px; color:var(--text-muted);"><i class="fa-solid fa-spinner fa-spin"></i> Memuat percakapan...</div>`;
+
+		$.getJSON(`/tickets/messages?ticket_id=${ticketID}`, function(data) {
+			container.innerHTML = "";
+			
+			if (!data || data.length === 0) {
+				container.innerHTML = `<div style="text-align:center; padding:40px 20px; color:var(--text-muted); font-size:12.5px; font-style:italic;"><i class="fa-regular fa-comment-dots" style="font-size:24px; margin-bottom:8px; display:block; opacity:0.5;"></i> Belum ada diskusi. Mulai kirim tanggapan Anda di bawah.</div>`;
+				return;
+			}
+
+			data.forEach(function(msg) {
+				const isMe = (msg.user_id === currentUserID);
+				const bubbleAlignClass = isMe ? "chat-message-right" : "chat-message-left";
+				const bubbleColorClass = isMe ? "chat-bubble-right" : "chat-bubble-left";
+
+				let attachmentHtml = "";
+				if (msg.file_path && msg.file_path !== "") {
+					attachmentHtml = `
+						<a href="${msg.file_path}" target="_blank" class="chat-attachment">
+							<i class="fa-solid fa-file-arrow-down"></i>
+							<span>${msg.file_name}</span>
+						</a>
+					`;
+				}
+
+				const messageHtml = `
+					<div class="chat-message ${bubbleAlignClass}">
+						<div class="chat-meta">
+							<span class="sender-name">${msg.username}</span>
+							<span>${msg.pretty_created_at}</span>
+						</div>
+						<div class="chat-bubble ${bubbleColorClass}">
+							<div style="white-space: pre-wrap;">${msg.message}</div>
+							${attachmentHtml}
+						</div>
+					</div>
+				`;
+				container.insertAdjacentHTML('beforeend', messageHtml);
+			});
+
+			// Auto scroll to bottom
+			container.scrollTop = container.scrollHeight;
+		}).fail(function() {
+			container.innerHTML = `<div style="text-align:center; padding:20px; font-size:12px; color:#ef4444;"><i class="fa-solid fa-circle-exclamation"></i> Gagal memuat diskusi.</div>`;
+		});
+	}
+
+	function submitThreadMessage(event) {
+		event.preventDefault();
+		const form = document.getElementById('chatInputForm');
+		const formData = new FormData(form);
+		const ticketID = document.getElementById('threadTicketID').value;
+		const submitBtn = form.querySelector('button[type="submit"]');
+
+		// Disable send button while loading
+		submitBtn.disabled = true;
+		submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i>`;
+
+		$.ajax({
+			url: '/tickets/messages/create',
+			type: 'POST',
+			data: formData,
+			processData: false,
+			contentType: false,
+			success: function(response) {
+				submitBtn.disabled = false;
+				submitBtn.innerHTML = `<i class="fa-solid fa-paper-plane"></i>`;
+				
+				// Reset inputs
+				document.getElementById('threadMessageInput').value = "";
+				document.getElementById('threadFileInput').value = "";
+				document.getElementById('threadFileLabel').style.display = "none";
+
+				// Reload chat history
+				fetchMessages(ticketID);
+			},
+			error: function(xhr, status, error) {
+				submitBtn.disabled = false;
+				submitBtn.innerHTML = `<i class="fa-solid fa-paper-plane"></i>`;
+				let errorMsg = "Gagal mengirimkan pesan.";
+				try {
+					const res = JSON.parse(xhr.responseText);
+					if (res.message) errorMsg = res.message;
+				} catch(e) {}
+				alert(errorMsg);
+			}
+		});
+	}
+
+	// Close modals on escape key or clicking outside
 	window.onclick = function(event) {
-		const modal = document.getElementById('ticketModal');
-		if (event.target === modal) {
+		const modalEdit = document.getElementById('ticketModal');
+		const modalDetail = document.getElementById('ticketDetailModal');
+		if (event.target === modalEdit) {
 			closeTicketModal();
+		}
+		if (event.target === modalDetail) {
+			closeTicketDetailModal();
 		}
 	}
 
@@ -628,7 +1023,6 @@
 			const issueDate = row.getAttribute('data-issue-date') || '';
 			const finishedDate = row.getAttribute('data-finished-date') || '-';
 			const ticketLink = row.getAttribute('data-ticket-link') || '';
-			// Find pelapor text in cells
 			const pelapor = row.cells[8].innerText.trim();
 			const status = row.getAttribute('data-status') || '';
 

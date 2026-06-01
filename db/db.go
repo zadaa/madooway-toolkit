@@ -391,4 +391,23 @@ func runMigrations() {
 		log.Fatalf("Error creating ticket uploads directory: %v", err)
 	}
 	log.Println("Directory 'static/uploads/tickets' verified/created")
+
+	// Create Ticket Messages table for discussions
+	ticketMessagesTableQuery := `
+	CREATE TABLE IF NOT EXISTS ticket_messages (
+		id INT AUTO_INCREMENT PRIMARY KEY,
+		ticket_id INT NOT NULL,
+		user_id INT NOT NULL,
+		message TEXT,
+		file_path VARCHAR(255) NULL,
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE,
+		FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+	) ENGINE=InnoDB;`
+
+	_, err = DB.Exec(ticketMessagesTableQuery)
+	if err != nil {
+		log.Fatalf("Error creating ticket_messages table: %v", err)
+	}
+	log.Println("Table 'ticket_messages' verified/created")
 }
