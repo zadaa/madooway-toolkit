@@ -302,7 +302,7 @@
 					<input type="date" id="ticketFinishedDate" name="finished_date">
 				</div>
 
-				<div class="form-group col-half">
+				<div class="form-group col-half" id="ticketLinkGroup">
 					<label for="ticketLink">Link Tiket Eksternal (Optional)</label>
 					<input type="url" id="ticketLink" name="ticket_link" placeholder="Contoh: https://clickup.com/tasks/xyz">
 				</div>
@@ -790,6 +790,9 @@
 		
 		document.getElementById('fileInfoText').style.display = "none";
 		toggleFinishedDate();
+		
+		// Hide ticket link input because it is automatically generated via ClickUp integration
+		document.getElementById('ticketLinkGroup').style.display = "none";
 
 		modal.style.display = "flex";
 	}
@@ -825,6 +828,10 @@
 		}
 
 		toggleFinishedDate();
+		
+		// Show ticket link input in edit mode so it can be updated/reviewed if needed
+		document.getElementById('ticketLinkGroup').style.display = "block";
+
 		modal.style.display = "flex";
 	}
 
