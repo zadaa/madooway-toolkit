@@ -15,6 +15,8 @@ type Config struct {
 	DBHost        string
 	DBPort        string
 	SessionSecret string
+	ClickUpToken  string
+	ClickUpListID string
 }
 
 var AppConfig *Config
@@ -31,6 +33,8 @@ func LoadConfig() {
 		DBHost:        getEnv("DB_HOST", "127.0.0.1"),
 		DBPort:        getEnv("DB_PORT", "3306"),
 		SessionSecret: getEnv("SESSION_SECRET", "default-secret-key-change-me"),
+		ClickUpToken:  getEnv("CLICKUP_TOKEN", ""),
+		ClickUpListID: getEnv("CLICKUP_LIST_ID", ""),
 	}
 	log.Println("Configuration loaded successfully")
 }

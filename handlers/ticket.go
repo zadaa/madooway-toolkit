@@ -13,6 +13,7 @@ import (
 
 	"task-manager-go/middleware"
 	"task-manager-go/models"
+	"task-manager-go/services"
 )
 
 type TicketsPageData struct {
@@ -108,6 +109,27 @@ func CreateTicket(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		filePath = "/static/uploads/tickets/" + newFilename
+	}
+
+	// Call ClickUp Integration if configured and ticketLink is not manually provided
+	if ticketLink == "" {
+		var clientName string
+		client, errVal := models.GetClientByID(clientID)
+		if errVal == nil && client != nil {
+			clientName = client.Name
+		}
+		
+		clickupDesc := fmt.Sprintf(
+			"Klien: %s\nKategori: %s\nTanggal Laporan: %s\nKeterangan:\n%s",
+			clientName, category, issueDateStr, description,
+		)
+		
+		clickupURL, errCU := services.CreateTaskInClickUp(title, clickupDesc)
+		if errCU != nil {
+			log.Printf("Warning: Failed to create ClickUp task: %v", errCU)
+		} else if clickupURL != "" {
+			ticketLink = clickupURL
+		}
 	}
 
 	err = models.CreateTicket(clientID, title, description, userID, filePath, issueDateStr, category, ticketLink, status, finishedDateStr)
