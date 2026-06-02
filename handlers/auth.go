@@ -82,7 +82,7 @@ func HandleRegister(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create user
-	err = models.CreateUser(username, email, password)
+	err = models.CreateUser(username, email, password, "")
 	if err != nil {
 		RenderTemplate(w, r, "register.html", "Daftar Akun", "", nil, "Gagal mendaftarkan akun. Silakan coba lagi.", "")
 		return

@@ -45,6 +45,7 @@ func main() {
 	mux.HandleFunc("POST /tickets/create", middleware.AuthRequired(handlers.CreateTicket))
 	mux.HandleFunc("POST /tickets/update", middleware.AuthRequired(handlers.UpdateTicket))
 	mux.HandleFunc("POST /tickets/delete", middleware.AuthRequired(handlers.DeleteTicket))
+	mux.HandleFunc("POST /tickets/assign", middleware.AuthRequired(handlers.AssignTicket))
 
 	mux.HandleFunc("GET /tickets/messages", middleware.AuthRequired(handlers.GetTicketMessagesJSON))
 	mux.HandleFunc("POST /tickets/messages/create", middleware.AuthRequired(handlers.CreateTicketMessageAJAX))

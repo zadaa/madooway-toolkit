@@ -663,7 +663,12 @@
             <div class="form-row">
                 <div class="form-group col-half">
                     <label for="trainingTrainer">Trainer / Pengajar</label>
-                    <input type="text" id="trainingTrainer" name="trainer" placeholder="Contoh: Budi Santoso, Rina Wijaya, etc.">
+                    <select id="trainingTrainer" name="trainer" style="width: 100%;">
+                        <option value="">-- Pilih Trainer --</option>
+                        {{range .Data.Users}}
+                        <option value="{{.Username}}">{{.Username}}</option>
+                        {{end}}
+                    </select>
                 </div>
                 
                 <div class="form-group col-half">
@@ -801,9 +806,7 @@
 
     $(document).ready(function() {
         // Initialize Select2 in creation/edit modal
-        $('#trainingClientID').select2({
-            placeholder: "-- Pilih Klien --",
-            allowClear: true,
+        $('#trainingClientID, #trainingTrainer').select2({
             width: '100%',
             dropdownParent: $('#trainingModal')
         });
@@ -975,6 +978,12 @@
         applyFilters();
     }
 
+    const userColors = {
+        {{range .Data.Users}}
+        "{{.Username}}": "{{.Color}}",
+        {{end}}
+    };
+
     // Helper to generate consistent pleasant colors based on trainer name
     function getTrainerColor(trainerName) {
         if (!trainerName || trainerName.trim() === "" || trainerName === "Tidak ditentukan") {
@@ -985,25 +994,43 @@
             };
         }
         
-        let hash = 0;
         const name = trainerName.trim();
+        const hexColor = userColors[name];
+        const isLight = document.documentElement.classList.contains('light-mode');
+        
+        if (hexColor) {
+            if (isLight) {
+                return {
+                    bg: hexColor + '15',
+                    border: hexColor + '40',
+                    fg: hexColor
+                };
+            } else {
+                return {
+                    bg: hexColor + '20',
+                    border: hexColor + '60',
+                    fg: hexColor
+                };
+            }
+        }
+        
+        let hash = 0;
         for (let i = 0; i < name.length; i++) {
             hash = name.charCodeAt(i) + ((hash << 5) - hash);
         }
         
         const hue = Math.abs(hash) % 360;
-        const isLight = document.documentElement.classList.contains('light-mode');
         
         if (isLight) {
             const bg = `hsl(${hue}, 60%, 92%)`;
             const border = `hsl(${hue}, 50%, 80%)`;
             const fg = `hsl(${hue}, 70%, 25%)`;
-            return { bg, border, fg };
+			return { bg, border, fg };
         } else {
             const bg = `hsl(${hue}, 55%, 35%, 0.15)`;
             const border = `hsl(${hue}, 50%, 45%, 0.3)`;
             const fg = `hsl(${hue}, 80%, 75%)`;
-            return { bg, border, fg };
+			return { bg, border, fg };
         }
     }
 
@@ -1163,10 +1190,10 @@
         document.getElementById('trainingType').value = "Online";
         document.getElementById('trainingStatus').value = "Scheduled";
         document.getElementById('trainingLocation').value = "";
-        document.getElementById('trainingTrainer').value = "";
         
-        // Reset Select2 client selection
+        // Reset Select2 selections
         $('#trainingClientID').val('').trigger('change');
+        $('#trainingTrainer').val('').trigger('change');
         
         document.getElementById('trainingModal').style.display = 'flex';
     }
@@ -1194,10 +1221,10 @@
         document.getElementById('trainingType').value = props.trainingType || "Online";
         document.getElementById('trainingStatus').value = props.status;
         document.getElementById('trainingLocation').value = props.location;
-        document.getElementById('trainingTrainer').value = props.trainer;
         
-        // Set Select2 client select
+        // Set Select2 selects
         $('#trainingClientID').val(props.clientId).trigger('change');
+        $('#trainingTrainer').val(props.trainer).trigger('change');
         
         document.getElementById('trainingModal').style.display = 'flex';
     }

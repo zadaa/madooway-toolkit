@@ -24,6 +24,7 @@ type Ticket struct {
 	FinishedDate    sql.NullTime
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
+	Assignees       []User
 }
 
 // FormattedIssueDate returns IssueDate in YYYY-MM-DD format
@@ -194,4 +195,62 @@ func GetAllTickets(search, clientName, category, status, startDate, endDate stri
 	}
 
 	return tickets, nil
+}
+
+// GetTicketAssignees retrieves the list of users assigned to a specific ticket
+func GetTicketAssignees(ticketID int) ([]User, error) {
+	query := `SELECT u.id, u.username, u.email, u.color, u.created_at 
+	          FROM users u 
+	          INNER JOIN ticket_assignees ta ON u.id = ta.user_id 
+	          WHERE ta.ticket_id = ? 
+	          ORDER BY u.username ASC`
+	rows, err := db.DB.Query(query, ticketID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var assignees []User
+	for rows.Next() {
+		var u User
+		err := rows.Scan(&u.ID, &u.Username, &u.Email, &u.Color, &u.CreatedAt)
+		if err != nil {
+			return nil, err
+		}
+		assignees = append(assignees, u)
+	}
+	return assignees, nil
+}
+
+// AssignTicket assigns multiple users to a ticket, replacing previous assignments
+func AssignTicket(ticketID int, userIDs []int) error {
+	tx, err := db.DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// Clear existing assignees
+	_, err = tx.Exec("DELETE FROM ticket_assignees WHERE ticket_id = ?", ticketID)
+	if err != nil {
+		return err
+	}
+
+	// Insert new assignees
+	if len(userIDs) > 0 {
+		stmt, err := tx.Prepare("INSERT INTO ticket_assignees (ticket_id, user_id) VALUES (?, ?)")
+		if err != nil {
+			return err
+		}
+		defer stmt.Close()
+
+		for _, userID := range userIDs {
+			_, err = stmt.Exec(ticketID, userID)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return tx.Commit()
 }

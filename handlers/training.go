@@ -13,6 +13,7 @@ import (
 type TrainingsPageData struct {
 	Schedules []models.TrainingSchedule
 	Clients   []models.Client
+	Users     []models.User
 }
 
 // ListTrainings renders the list of training schedules
@@ -32,9 +33,16 @@ func ListTrainings(w http.ResponseWriter, r *http.Request) {
 		clients = []models.Client{}
 	}
 
+	users, err := models.GetAllUsers()
+	if err != nil {
+		log.Printf("Error fetching users for trainings: %v", err)
+		users = []models.User{}
+	}
+
 	data := TrainingsPageData{
 		Schedules: schedules,
 		Clients:   clients,
+		Users:     users,
 	}
 
 	successMsg := r.URL.Query().Get("success")

@@ -83,6 +83,7 @@ func runMigrations() {
 		username VARCHAR(50) UNIQUE NOT NULL,
 		email VARCHAR(100) UNIQUE NOT NULL,
 		password_hash VARCHAR(255) NOT NULL,
+		color VARCHAR(20) NOT NULL DEFAULT '#4f46e5',
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 	) ENGINE=InnoDB;`
 
@@ -410,4 +411,52 @@ func runMigrations() {
 		log.Fatalf("Error creating ticket_messages table: %v", err)
 	}
 	log.Println("Table 'ticket_messages' verified/created")
+
+	// Create User Sessions table
+	userSessionsTableQuery := `
+	CREATE TABLE IF NOT EXISTS user_sessions (
+		token VARCHAR(255) PRIMARY KEY,
+		user_id INT NOT NULL,
+		expires_at DATETIME NOT NULL,
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+	) ENGINE=InnoDB;`
+
+	_, err = DB.Exec(userSessionsTableQuery)
+	if err != nil {
+		log.Fatalf("Error creating user_sessions table: %v", err)
+	}
+	log.Println("Table 'user_sessions' verified/created")
+
+	// Check if color column exists in users table
+	var userColorExists int
+	checkUserColorQuery := `SELECT COUNT(*) FROM information_schema.COLUMNS 
+	                        WHERE TABLE_SCHEMA = DATABASE() 
+	                        AND TABLE_NAME = 'users' 
+	                        AND COLUMN_NAME = 'color'`
+	err = DB.QueryRow(checkUserColorQuery).Scan(&userColorExists)
+	if err == nil && userColorExists == 0 {
+		log.Println("Migrating users table: adding color column")
+		_, err = DB.Exec("ALTER TABLE users ADD COLUMN color VARCHAR(20) NOT NULL DEFAULT '#4f46e5'")
+		if err != nil {
+			log.Fatalf("Error adding color column to users table: %v", err)
+		}
+		log.Println("Database migration completed: color column added to users table")
+	}
+
+	// Create Ticket Assignees table
+	ticketAssigneesTableQuery := `
+	CREATE TABLE IF NOT EXISTS ticket_assignees (
+		ticket_id INT NOT NULL,
+		user_id INT NOT NULL,
+		PRIMARY KEY (ticket_id, user_id),
+		FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE,
+		FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+	) ENGINE=InnoDB;`
+
+	_, err = DB.Exec(ticketAssigneesTableQuery)
+	if err != nil {
+		log.Fatalf("Error creating ticket_assignees table: %v", err)
+	}
+	log.Println("Table 'ticket_assignees' verified/created")
 }

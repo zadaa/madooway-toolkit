@@ -3,15 +3,11 @@ package middleware
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"log"
 	"net/http"
-	"sync"
 	"time"
-)
 
-var (
-	// Sessions map: sessionToken -> UserID
-	sessions   = make(map[string]int)
-	sessionsMu sync.RWMutex
+	"task-manager-go/db"
 )
 
 // GenerateSessionToken creates a cryptographically secure random token
@@ -24,15 +20,18 @@ func GenerateSessionToken() string {
 // CreateSession registers a new session and sets the HTTP-only cookie
 func CreateSession(w http.ResponseWriter, userID int) {
 	token := GenerateSessionToken()
+	expiresAt := time.Now().Add(365 * 24 * time.Hour) // 1 year expiry
 
-	sessionsMu.Lock()
-	sessions[token] = userID
-	sessionsMu.Unlock()
+	_, err := db.DB.Exec("INSERT INTO user_sessions (token, user_id, expires_at) VALUES (?, ?, ?)", token, userID, expiresAt)
+	if err != nil {
+		log.Printf("Error creating session in database: %v", err)
+		return
+	}
 
 	http.SetCookie(w, &http.Cookie{
 		Name:     "session_token",
 		Value:    token,
-		Expires:  time.Now().Add(24 * time.Hour),
+		Expires:  expiresAt,
 		HttpOnly: true,
 		Path:     "/",
 		// SameSite: http.SameSiteLaxMode, // Good practice
@@ -46,20 +45,23 @@ func GetSessionUser(r *http.Request) (int, bool) {
 		return 0, false
 	}
 
-	sessionsMu.RLock()
-	userID, exists := sessions[cookie.Value]
-	sessionsMu.RUnlock()
+	var userID int
+	err = db.DB.QueryRow("SELECT user_id FROM user_sessions WHERE token = ? AND expires_at > NOW()", cookie.Value).Scan(&userID)
+	if err != nil {
+		return 0, false
+	}
 
-	return userID, exists
+	return userID, true
 }
 
 // DestroySession removes the session and clears the cookie
 func DestroySession(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("session_token")
 	if err == nil {
-		sessionsMu.Lock()
-		delete(sessions, cookie.Value)
-		sessionsMu.Unlock()
+		_, err = db.DB.Exec("DELETE FROM user_sessions WHERE token = ?", cookie.Value)
+		if err != nil {
+			log.Printf("Error destroying session in database: %v", err)
+		}
 	}
 
 	http.SetCookie(w, &http.Cookie{

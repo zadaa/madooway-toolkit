@@ -40,6 +40,7 @@
                 <th style="width: 50px;">No.</th>
                 <th>Nama Pengguna (Username)</th>
                 <th>Alamat Email</th>
+                <th style="width: 120px;">Warna</th>
                 <th>Tanggal Terdaftar</th>
                 <th style="width: 120px; text-align: center;">Aksi</th>
             </tr>
@@ -48,7 +49,8 @@
             {{range .Data}}
             <tr data-id="{{.ID}}"
                 data-username="{{.Username}}"
-                data-email="{{.Email}}">
+                data-email="{{.Email}}"
+                data-color="{{.Color}}">
                 
                 <td class="row-index" style="font-weight: 600; color: var(--text-muted);"></td>
                 
@@ -64,6 +66,13 @@
                 <td>{{.Email}}</td>
                 
                 <td>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="display: inline-block; width: 16px; height: 16px; border-radius: 4px; background: {{.Color}}; border: 1px solid rgba(255,255,255,0.15);"></span>
+                        <code style="font-size: 12px; font-family: monospace; font-weight: 600;">{{.Color}}</code>
+                    </div>
+                </td>
+                
+                <td>
                     <div style="display: flex; align-items: center; gap: 6px;">
                         <i class="fa-solid fa-calendar-check" style="color: var(--color-primary);"></i>
                         <span>{{.FormattedCreatedAt}}</span>
@@ -76,6 +85,7 @@
                                 data-id="{{.ID}}"
                                 data-username="{{.Username}}"
                                 data-email="{{.Email}}"
+                                data-color="{{.Color}}"
                                 onclick="openEditUserModal(this)">
                             <i class="fa-solid fa-pen-to-square"></i>
                         </button>
@@ -133,6 +143,14 @@
                 <label for="userPassword">Kata Sandi (Password)</label>
                 <input type="password" id="userPassword" name="password" required placeholder="Minimal 6 karakter...">
                 <small id="passwordHelp" style="display: none; margin-top: 4px; font-size: 11px; color: var(--text-muted);">*Kosongkan jika tidak ingin mengubah password.</small>
+            </div>
+
+            <div class="form-group">
+                <label for="userColor">Warna Representasi</label>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <input type="color" id="userColorPicker" style="width: 48px; height: 38px; padding: 2px; border-radius: 8px; border: 1px solid var(--border-color); cursor: pointer; background: transparent;" oninput="document.getElementById('userColor').value = this.value">
+                    <input type="text" id="userColor" name="color" required placeholder="Contoh: #4f46e5" style="flex: 1;" oninput="document.getElementById('userColorPicker').value = this.value">
+                </div>
             </div>
 
             <div class="modal-footer">
@@ -206,6 +224,8 @@
         document.getElementById('userID').value = "";
         document.getElementById('userUsername').value = "";
         document.getElementById('userEmail').value = "";
+        document.getElementById('userColor').value = "#4f46e5";
+        document.getElementById('userColorPicker').value = "#4f46e5";
         
         const passwordInput = document.getElementById('userPassword');
         passwordInput.value = "";
@@ -223,10 +243,13 @@
         const id = btn.getAttribute('data-id');
         const username = btn.getAttribute('data-username');
         const email = btn.getAttribute('data-email');
+        const color = btn.getAttribute('data-color') || "#4f46e5";
         
         document.getElementById('userID').value = id;
         document.getElementById('userUsername').value = username;
         document.getElementById('userEmail').value = email;
+        document.getElementById('userColor').value = color;
+        document.getElementById('userColorPicker').value = color;
         
         const passwordInput = document.getElementById('userPassword');
         passwordInput.value = "";

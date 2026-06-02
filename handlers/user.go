@@ -35,6 +35,7 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 	username := strings.TrimSpace(r.FormValue("username"))
 	email := strings.TrimSpace(r.FormValue("email"))
 	password := r.FormValue("password")
+	color := strings.TrimSpace(r.FormValue("color"))
 
 	if username == "" || email == "" || password == "" {
 		http.Redirect(w, r, "/users?error=Username, email, dan password wajib diisi", http.StatusSeeOther)
@@ -70,7 +71,7 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = models.CreateUser(username, email, password)
+	err = models.CreateUser(username, email, password, color)
 	if err != nil {
 		log.Printf("Error creating user: %v", err)
 		http.Redirect(w, r, "/users?error=Gagal+menambahkan+user", http.StatusSeeOther)
@@ -97,6 +98,7 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 	username := strings.TrimSpace(r.FormValue("username"))
 	email := strings.TrimSpace(r.FormValue("email"))
 	password := r.FormValue("password") // optional
+	color := strings.TrimSpace(r.FormValue("color"))
 
 	if username == "" || email == "" {
 		http.Redirect(w, r, "/users?error=Username+dan+email+wajib+diisi", http.StatusSeeOther)
@@ -132,7 +134,7 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = models.UpdateUser(id, username, email, password)
+	err = models.UpdateUser(id, username, email, password, color)
 	if err != nil {
 		log.Printf("Error updating user: %v", err)
 		http.Redirect(w, r, "/users?error=Gagal+memperbarui+user", http.StatusSeeOther)

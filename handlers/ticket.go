@@ -19,6 +19,7 @@ import (
 type TicketsPageData struct {
 	Tickets []models.Ticket
 	Clients []models.Client
+	Users   []models.User
 }
 
 // ListTickets displays the list of tickets
@@ -30,15 +31,31 @@ func ListTickets(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	for i := range tickets {
+		assignees, err := models.GetTicketAssignees(tickets[i].ID)
+		if err == nil {
+			tickets[i].Assignees = assignees
+		} else {
+			tickets[i].Assignees = []models.User{}
+		}
+	}
+
 	clients, err := models.GetAllClients()
 	if err != nil {
 		log.Printf("Error fetching clients for tickets: %v", err)
 		clients = []models.Client{}
 	}
 
+	users, err := models.GetAllUsers()
+	if err != nil {
+		log.Printf("Error fetching users for tickets: %v", err)
+		users = []models.User{}
+	}
+
 	data := TicketsPageData{
 		Tickets: tickets,
 		Clients: clients,
+		Users:   users,
 	}
 
 	successMsg := r.URL.Query().Get("success")
@@ -267,4 +284,43 @@ func DeleteTicket(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/tickets?success=Tiket+berhasil+dihapus", http.StatusSeeOther)
+}
+
+// AssignTicket handles POST requests to assign users to a ticket
+func AssignTicket(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Redirect(w, r, "/tickets", http.StatusSeeOther)
+		return
+	}
+
+	ticketIDStr := r.FormValue("ticket_id")
+	ticketID, err := strconv.Atoi(ticketIDStr)
+	if err != nil {
+		http.Redirect(w, r, "/tickets?error=ID+tiket+tidak+valid", http.StatusSeeOther)
+		return
+	}
+
+	// Parse form variables
+	err = r.ParseForm()
+	if err != nil {
+		log.Printf("Error parsing assign form: %v", err)
+	}
+
+	userIDsStr := r.Form["user_ids"]
+	var userIDs []int
+	for _, idStr := range userIDsStr {
+		id, err := strconv.Atoi(idStr)
+		if err == nil {
+			userIDs = append(userIDs, id)
+		}
+	}
+
+	err = models.AssignTicket(ticketID, userIDs)
+	if err != nil {
+		log.Printf("Error assigning ticket: %v", err)
+		http.Redirect(w, r, "/tickets?error=Gagal+menugaskan+petugas", http.StatusSeeOther)
+		return
+	}
+
+	http.Redirect(w, r, "/tickets?success=Petugas+berhasil+ditugaskan", http.StatusSeeOther)
 }
