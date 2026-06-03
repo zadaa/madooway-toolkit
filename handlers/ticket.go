@@ -235,6 +235,14 @@ func DeleteTicket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	userID, _ := middleware.GetSessionUser(r)
+	var role string
+	err := db.DB.QueryRow("SELECT role FROM users WHERE id = ?", userID).Scan(&role)
+	if err != nil || role != "admin" {
+		http.Redirect(w, r, "/tickets?error=Anda+tidak+memiliki+akses+untuk+menghapus+tiket", http.StatusSeeOther)
+		return
+	}
+
 	idStr := r.FormValue("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {

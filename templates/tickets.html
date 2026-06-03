@@ -241,12 +241,14 @@
 							<i class="fa-solid fa-pen-to-square"></i>
 						</button>
 						
+						{{if eq $.User.Role "admin"}}
 						<form action="/tickets/delete" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus tiket ini?')" style="display:inline;">
 							<input type="hidden" name="id" value="{{.ID}}">
 							<button type="submit" class="btn-action-delete" title="Hapus Tiket">
 								<i class="fa-solid fa-trash-can"></i>
 							</button>
 						</form>
+						{{end}}
 					</div>
 				</td>
 			</tr>
