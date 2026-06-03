@@ -68,6 +68,10 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/users?error=Terjadi+kesalahan+pada+server", http.StatusSeeOther)
 		return
 	}
+	if emailExists {
+		http.Redirect(w, r, "/users?error=Email+sudah+terdaftar", http.StatusSeeOther)
+		return
+	}
 	// Check if NIP already exists
 	nipExists, err := models.CheckNIPExists(nip, 0)
 	if err != nil {
@@ -138,6 +142,10 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("Error checking email: %v", err)
 		http.Redirect(w, r, "/users?error=Terjadi+kesalahan+pada+server", http.StatusSeeOther)
+		return
+	}
+	if emailExists {
+		http.Redirect(w, r, "/users?error=Email+sudah+terdaftar+oleh+user+lain", http.StatusSeeOther)
 		return
 	}
 	// Check if NIP already exists for other users
