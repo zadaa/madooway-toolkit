@@ -40,6 +40,7 @@
                 <th style="width: 50px;">No.</th>
                 <th>Nama Pengguna (Username)</th>
                 <th>Alamat Email</th>
+                <th>NIP</th>
                 <th>Role / Hak Akses</th>
                 <th style="width: 120px;">Warna</th>
                 <th>Tanggal Terdaftar</th>
@@ -51,6 +52,7 @@
             <tr data-id="{{.ID}}"
                 data-username="{{.Username}}"
                 data-email="{{.Email}}"
+                data-nip="{{.NIP}}"
                 data-color="{{.Color}}"
                 data-role="{{.Role}}">
                 
@@ -66,6 +68,7 @@
                 </td>
                 
                 <td>{{.Email}}</td>
+                <td>{{if .NIP}}{{.NIP}}{{else}}<span style="color: var(--text-muted); font-style: italic;">-</span>{{end}}</td>
                 
                 <td>
                     <span class="badge" style="background: {{if eq .Role "admin"}}rgba(239, 71, 111, 0.12){{else}}rgba(6, 214, 160, 0.12){{end}}; color: {{if eq .Role "admin"}}var(--color-danger){{else}}var(--color-secondary){{end}}; border: 1px solid {{if eq .Role "admin"}}rgba(239, 71, 111, 0.15){{else}}rgba(6, 214, 160, 0.15){{end}}; text-transform: uppercase; font-size: 10px; font-weight: 700; letter-spacing: 0.5px;">{{.Role}}</span>
@@ -91,6 +94,7 @@
                                 data-id="{{.ID}}"
                                 data-username="{{.Username}}"
                                 data-email="{{.Email}}"
+                                data-nip="{{.NIP}}"
                                 data-color="{{.Color}}"
                                 data-role="{{.Role}}"
                                 onclick="openEditUserModal(this)">
@@ -147,6 +151,11 @@
             </div>
 
             <div class="form-group">
+                <label for="userNIP">NIP (Nomor Induk Pegawai)</label>
+                <input type="text" id="userNIP" name="nip" placeholder="Contoh: 199001012015011001 (Opsional)">
+            </div>
+
+            <div class="form-group">
                 <label for="userPassword">Kata Sandi (Password)</label>
                 <input type="password" id="userPassword" name="password" required placeholder="Minimal 6 karakter...">
                 <small id="passwordHelp" style="display: none; margin-top: 4px; font-size: 11px; color: var(--text-muted);">*Kosongkan jika tidak ingin mengubah password.</small>
@@ -188,10 +197,11 @@
         rows.forEach(row => {
             const username = row.getAttribute('data-username').toLowerCase();
             const email = row.getAttribute('data-email').toLowerCase();
+            const nip = (row.getAttribute('data-nip') || '').toLowerCase();
 
             let match = true;
             if (searchVal !== '') {
-                if (!username.includes(searchVal) && !email.includes(searchVal)) {
+                if (!username.includes(searchVal) && !email.includes(searchVal) && !nip.includes(searchVal)) {
                     match = false;
                 }
             }
@@ -239,6 +249,7 @@
         document.getElementById('userID').value = "";
         document.getElementById('userUsername').value = "";
         document.getElementById('userEmail').value = "";
+        document.getElementById('userNIP').value = "";
         document.getElementById('userColor').value = "#4f46e5";
         document.getElementById('userColorPicker').value = "#4f46e5";
         document.getElementById('userRole').value = "user";
@@ -259,12 +270,14 @@
         const id = btn.getAttribute('data-id');
         const username = btn.getAttribute('data-username');
         const email = btn.getAttribute('data-email');
+        const nip = btn.getAttribute('data-nip') || "";
         const color = btn.getAttribute('data-color') || "#4f46e5";
         const role = btn.getAttribute('data-role') || "user";
         
         document.getElementById('userID').value = id;
         document.getElementById('userUsername').value = username;
         document.getElementById('userEmail').value = email;
+        document.getElementById('userNIP').value = nip;
         document.getElementById('userColor').value = color;
         document.getElementById('userColorPicker').value = color;
         document.getElementById('userRole').value = role;

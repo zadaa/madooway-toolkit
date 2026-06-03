@@ -28,7 +28,7 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := models.GetUserByEmail(email)
+	user, err := models.GetUserByIdentifier(email)
 	if err != nil {
 		RenderTemplate(w, r, "login.html", "Login", "", nil, "Terjadi kesalahan pada server.", "")
 		return
@@ -82,7 +82,7 @@ func HandleRegister(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create user
-	err = models.CreateUser(username, email, password, "", "user")
+	err = models.CreateUser(username, email, password, "", "user", "")
 	if err != nil {
 		RenderTemplate(w, r, "register.html", "Daftar Akun", "", nil, "Gagal mendaftarkan akun. Silakan coba lagi.", "")
 		return

@@ -37,6 +37,7 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
 	color := strings.TrimSpace(r.FormValue("color"))
 	role := strings.TrimSpace(r.FormValue("role"))
+	nip := strings.TrimSpace(r.FormValue("nip"))
 
 	if username == "" || email == "" || password == "" {
 		http.Redirect(w, r, "/users?error=Username, email, dan password wajib diisi", http.StatusSeeOther)
@@ -67,12 +68,19 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/users?error=Terjadi+kesalahan+pada+server", http.StatusSeeOther)
 		return
 	}
-	if emailExists {
-		http.Redirect(w, r, "/users?error=Email+sudah+terdaftar", http.StatusSeeOther)
+	// Check if NIP already exists
+	nipExists, err := models.CheckNIPExists(nip, 0)
+	if err != nil {
+		log.Printf("Error checking NIP: %v", err)
+		http.Redirect(w, r, "/users?error=Terjadi+kesalahan+pada+server", http.StatusSeeOther)
+		return
+	}
+	if nipExists {
+		http.Redirect(w, r, "/users?error=NIP+sudah+digunakan", http.StatusSeeOther)
 		return
 	}
 
-	err = models.CreateUser(username, email, password, color, role)
+	err = models.CreateUser(username, email, password, color, role, nip)
 	if err != nil {
 		log.Printf("Error creating user: %v", err)
 		http.Redirect(w, r, "/users?error=Gagal+menambahkan+user", http.StatusSeeOther)
@@ -101,6 +109,7 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password") // optional
 	color := strings.TrimSpace(r.FormValue("color"))
 	role := strings.TrimSpace(r.FormValue("role"))
+	nip := strings.TrimSpace(r.FormValue("nip"))
 
 	if username == "" || email == "" {
 		http.Redirect(w, r, "/users?error=Username+dan+email+wajib+diisi", http.StatusSeeOther)
@@ -131,12 +140,19 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/users?error=Terjadi+kesalahan+pada+server", http.StatusSeeOther)
 		return
 	}
-	if emailExists {
-		http.Redirect(w, r, "/users?error=Email+sudah+terdaftar+oleh+user+lain", http.StatusSeeOther)
+	// Check if NIP already exists for other users
+	nipExists, err := models.CheckNIPExists(nip, id)
+	if err != nil {
+		log.Printf("Error checking NIP: %v", err)
+		http.Redirect(w, r, "/users?error=Terjadi+kesalahan+pada+server", http.StatusSeeOther)
+		return
+	}
+	if nipExists {
+		http.Redirect(w, r, "/users?error=NIP+sudah+digunakan+oleh+user+lain", http.StatusSeeOther)
 		return
 	}
 
-	err = models.UpdateUser(id, username, email, password, color, role)
+	err = models.UpdateUser(id, username, email, password, color, role, nip)
 	if err != nil {
 		log.Printf("Error updating user: %v", err)
 		http.Redirect(w, r, "/users?error=Gagal+memperbarui+user", http.StatusSeeOther)

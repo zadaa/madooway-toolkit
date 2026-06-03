@@ -524,6 +524,22 @@ func runMigrations() {
 		log.Println("Database migration completed: role column added to users table and existing users set to admin")
 	}
 
+	// Check if nip column exists in users table
+	var nipColumnExists int
+	checkNipQuery := `SELECT COUNT(*) FROM information_schema.COLUMNS 
+	                  WHERE TABLE_SCHEMA = DATABASE() 
+	                  AND TABLE_NAME = 'users' 
+	                  AND COLUMN_NAME = 'nip'`
+	err = DB.QueryRow(checkNipQuery).Scan(&nipColumnExists)
+	if err == nil && nipColumnExists == 0 {
+		log.Println("Migrating users table: adding nip column")
+		_, err = DB.Exec("ALTER TABLE users ADD COLUMN nip VARCHAR(30) UNIQUE NULL")
+		if err != nil {
+			log.Fatalf("Error adding nip column to users table: %v", err)
+		}
+		log.Println("Database migration completed: nip column added to users table")
+	}
+
 	// Migrate existing 'Undefined' categories to 'Lain-lain' in tasks and tickets
 	_, _ = DB.Exec("UPDATE tasks SET category = 'Lain-lain' WHERE category = 'Undefined'")
 	_, _ = DB.Exec("UPDATE tickets SET category = 'Lain-lain' WHERE category = 'Undefined'")
