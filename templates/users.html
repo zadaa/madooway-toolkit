@@ -40,6 +40,7 @@
                 <th style="width: 50px;">No.</th>
                 <th>Nama Pengguna (Username)</th>
                 <th>Alamat Email</th>
+                <th>Role / Hak Akses</th>
                 <th style="width: 120px;">Warna</th>
                 <th>Tanggal Terdaftar</th>
                 <th style="width: 120px; text-align: center;">Aksi</th>
@@ -50,7 +51,8 @@
             <tr data-id="{{.ID}}"
                 data-username="{{.Username}}"
                 data-email="{{.Email}}"
-                data-color="{{.Color}}">
+                data-color="{{.Color}}"
+                data-role="{{.Role}}">
                 
                 <td class="row-index" style="font-weight: 600; color: var(--text-muted);"></td>
                 
@@ -64,6 +66,10 @@
                 </td>
                 
                 <td>{{.Email}}</td>
+                
+                <td>
+                    <span class="badge" style="background: {{if eq .Role "admin"}}rgba(239, 71, 111, 0.12){{else}}rgba(6, 214, 160, 0.12){{end}}; color: {{if eq .Role "admin"}}var(--color-danger){{else}}var(--color-secondary){{end}}; border: 1px solid {{if eq .Role "admin"}}rgba(239, 71, 111, 0.15){{else}}rgba(6, 214, 160, 0.15){{end}}; text-transform: uppercase; font-size: 10px; font-weight: 700; letter-spacing: 0.5px;">{{.Role}}</span>
+                </td>
                 
                 <td>
                     <div style="display: flex; align-items: center; gap: 8px;">
@@ -86,6 +92,7 @@
                                 data-username="{{.Username}}"
                                 data-email="{{.Email}}"
                                 data-color="{{.Color}}"
+                                data-role="{{.Role}}"
                                 onclick="openEditUserModal(this)">
                             <i class="fa-solid fa-pen-to-square"></i>
                         </button>
@@ -151,6 +158,14 @@
                     <input type="color" id="userColorPicker" style="width: 48px; height: 38px; padding: 2px; border-radius: 8px; border: 1px solid var(--border-color); cursor: pointer; background: transparent;" oninput="document.getElementById('userColor').value = this.value">
                     <input type="text" id="userColor" name="color" required placeholder="Contoh: #4f46e5" style="flex: 1;" oninput="document.getElementById('userColorPicker').value = this.value">
                 </div>
+            </div>
+
+            <div class="form-group">
+                <label for="userRole">Role / Hak Akses</label>
+                <select id="userRole" name="role" required style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-primary); font-size: 14px; font-weight: 500; outline: none; cursor: pointer;">
+                    <option value="user">User Biasa</option>
+                    <option value="admin">Admin</option>
+                </select>
             </div>
 
             <div class="modal-footer">
@@ -226,6 +241,7 @@
         document.getElementById('userEmail').value = "";
         document.getElementById('userColor').value = "#4f46e5";
         document.getElementById('userColorPicker').value = "#4f46e5";
+        document.getElementById('userRole').value = "user";
         
         const passwordInput = document.getElementById('userPassword');
         passwordInput.value = "";
@@ -244,12 +260,14 @@
         const username = btn.getAttribute('data-username');
         const email = btn.getAttribute('data-email');
         const color = btn.getAttribute('data-color') || "#4f46e5";
+        const role = btn.getAttribute('data-role') || "user";
         
         document.getElementById('userID').value = id;
         document.getElementById('userUsername').value = username;
         document.getElementById('userEmail').value = email;
         document.getElementById('userColor').value = color;
         document.getElementById('userColorPicker').value = color;
+        document.getElementById('userRole').value = role;
         
         const passwordInput = document.getElementById('userPassword');
         passwordInput.value = "";

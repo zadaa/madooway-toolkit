@@ -38,6 +38,7 @@
         </div>
         
         <nav class="sidebar-menu">
+            {{if eq .User.Role "admin"}}
             <a href="/dashboard" class="menu-item {{if eq .ActiveTab "dashboard"}}active{{end}}">
                 <i class="fa-solid fa-chart-pie"></i>
                 <span>Dashboard</span>
@@ -58,6 +59,7 @@
                     <span>Data Klien</span>
                 </a>
             </div>
+            {{end}}
             
             <div class="menu-category">
                 <span class="category-title">Toolkit</span>

@@ -34,9 +34,9 @@ func main() {
 
 	// Authenticated Routes
 	mux.HandleFunc("GET /logout", handlers.HandleLogout)
-	mux.HandleFunc("GET /dashboard", middleware.AuthRequired(handlers.ShowDashboard))
-	mux.HandleFunc("GET /kpi", middleware.AuthRequired(handlers.ShowUserKPI))
-	mux.HandleFunc("GET /kpi/", middleware.AuthRequired(handlers.ShowUserKPI))
+	mux.HandleFunc("GET /dashboard", middleware.AdminOnly(handlers.ShowDashboard))
+	mux.HandleFunc("GET /kpi", middleware.AdminOnly(handlers.ShowUserKPI))
+	mux.HandleFunc("GET /kpi/", middleware.AdminOnly(handlers.ShowUserKPI))
 	
 	mux.HandleFunc("GET /tasks", middleware.AuthRequired(handlers.ListTasks))
 	mux.HandleFunc("POST /tasks/create", middleware.AuthRequired(handlers.CreateTask))
@@ -52,11 +52,11 @@ func main() {
 	mux.HandleFunc("GET /tickets/messages", middleware.AuthRequired(handlers.GetTicketMessagesJSON))
 	mux.HandleFunc("POST /tickets/messages/create", middleware.AuthRequired(handlers.CreateTicketMessageAJAX))
 
-	mux.HandleFunc("GET /clients", middleware.AuthRequired(handlers.ListClients))
-	mux.HandleFunc("POST /clients/create", middleware.AuthRequired(handlers.CreateClient))
-	mux.HandleFunc("POST /clients/update", middleware.AuthRequired(handlers.UpdateClient))
-	mux.HandleFunc("POST /clients/delete", middleware.AuthRequired(handlers.DeleteClient))
-	mux.HandleFunc("POST /clients/sync", middleware.AuthRequired(handlers.SyncClients))
+	mux.HandleFunc("GET /clients", middleware.AdminOnly(handlers.ListClients))
+	mux.HandleFunc("POST /clients/create", middleware.AdminOnly(handlers.CreateClient))
+	mux.HandleFunc("POST /clients/update", middleware.AdminOnly(handlers.UpdateClient))
+	mux.HandleFunc("POST /clients/delete", middleware.AdminOnly(handlers.DeleteClient))
+	mux.HandleFunc("POST /clients/sync", middleware.AdminOnly(handlers.SyncClients))
 
 
 	mux.HandleFunc("GET /trainings", middleware.AuthRequired(handlers.ListTrainings))
@@ -69,10 +69,10 @@ func main() {
 	mux.HandleFunc("POST /performance/update", middleware.AuthRequired(handlers.UpdatePerformance))
 	mux.HandleFunc("POST /performance/delete", middleware.AuthRequired(handlers.DeletePerformance))
 
-	mux.HandleFunc("GET /users", middleware.AuthRequired(handlers.ListUsers))
-	mux.HandleFunc("POST /users/create", middleware.AuthRequired(handlers.CreateUser))
-	mux.HandleFunc("POST /users/update", middleware.AuthRequired(handlers.UpdateUser))
-	mux.HandleFunc("POST /users/delete", middleware.AuthRequired(handlers.DeleteUser))
+	mux.HandleFunc("GET /users", middleware.AdminOnly(handlers.ListUsers))
+	mux.HandleFunc("POST /users/create", middleware.AdminOnly(handlers.CreateUser))
+	mux.HandleFunc("POST /users/update", middleware.AdminOnly(handlers.UpdateUser))
+	mux.HandleFunc("POST /users/delete", middleware.AdminOnly(handlers.DeleteUser))
 
 	// Leads Tracker Routes
 	mux.HandleFunc("GET /leads", middleware.AuthRequired(handlers.ListLeads))
@@ -87,7 +87,18 @@ func main() {
 			http.NotFound(w, r)
 			return
 		}
-		http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+		userID, loggedIn := middleware.GetSessionUser(r)
+		if loggedIn {
+			var role string
+			err := db.DB.QueryRow("SELECT role FROM users WHERE id = ?", userID).Scan(&role)
+			if err == nil && role == "admin" {
+				http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+				return
+			}
+			http.Redirect(w, r, "/tasks", http.StatusSeeOther)
+			return
+		}
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
 	})
 
 	// 4. Start HTTP Server

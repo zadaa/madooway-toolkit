@@ -503,6 +503,27 @@ func runMigrations() {
 		log.Println("Database migration completed: follow_up_history column added to leads table")
 	}
 
+	// Check if role column exists in users table
+	var roleColumnExists int
+	checkRoleQuery := `SELECT COUNT(*) FROM information_schema.COLUMNS 
+	                   WHERE TABLE_SCHEMA = DATABASE() 
+	                   AND TABLE_NAME = 'users' 
+	                   AND COLUMN_NAME = 'role'`
+	err = DB.QueryRow(checkRoleQuery).Scan(&roleColumnExists)
+	if err == nil && roleColumnExists == 0 {
+		log.Println("Migrating users table: adding role column")
+		_, err = DB.Exec("ALTER TABLE users ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'user'")
+		if err != nil {
+			log.Fatalf("Error adding role column to users table: %v", err)
+		}
+		// Set all existing users to 'admin' so they don't get locked out initially
+		_, err = DB.Exec("UPDATE users SET role = 'admin'")
+		if err != nil {
+			log.Printf("Warning: failed to set existing users to admin: %v", err)
+		}
+		log.Println("Database migration completed: role column added to users table and existing users set to admin")
+	}
+
 	// Migrate existing 'Undefined' categories to 'Lain-lain' in tasks and tickets
 	_, _ = DB.Exec("UPDATE tasks SET category = 'Lain-lain' WHERE category = 'Undefined'")
 	_, _ = DB.Exec("UPDATE tickets SET category = 'Lain-lain' WHERE category = 'Undefined'")

@@ -16,6 +16,7 @@ type User struct {
 	Email        string
 	PasswordHash string
 	Color        string
+	Role         string
 	CreatedAt    time.Time
 }
 
@@ -29,7 +30,7 @@ func CheckPasswordHash(password, hash string) bool {
 	return err == nil
 }
 
-func CreateUser(username, email, password, color string) error {
+func CreateUser(username, email, password, color, role string) error {
 	hash, err := HashPassword(password)
 	if err != nil {
 		return err
@@ -37,18 +38,21 @@ func CreateUser(username, email, password, color string) error {
 	if color == "" {
 		color = "#4f46e5"
 	}
+	if role == "" {
+		role = "user"
+	}
 
-	query := "INSERT INTO users (username, email, password_hash, color) VALUES (?, ?, ?, ?)"
-	_, err = db.DB.Exec(query, username, email, hash, color)
+	query := "INSERT INTO users (username, email, password_hash, color, role) VALUES (?, ?, ?, ?, ?)"
+	_, err = db.DB.Exec(query, username, email, hash, color, role)
 	return err
 }
 
 func GetUserByEmail(email string) (*User, error) {
-	query := "SELECT id, username, email, password_hash, color, created_at FROM users WHERE email = ?"
+	query := "SELECT id, username, email, password_hash, color, role, created_at FROM users WHERE email = ?"
 	row := db.DB.QueryRow(query, email)
 
 	var user User
-	err := row.Scan(&user.ID, &user.Username, &user.Email, &user.PasswordHash, &user.Color, &user.CreatedAt)
+	err := row.Scan(&user.ID, &user.Username, &user.Email, &user.PasswordHash, &user.Color, &user.Role, &user.CreatedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -66,7 +70,7 @@ func (u *User) FormattedCreatedAt() string {
 
 // GetAllUsers retrieves all registered users ordered by username
 func GetAllUsers() ([]User, error) {
-	query := "SELECT id, username, email, color, created_at FROM users ORDER BY username ASC"
+	query := "SELECT id, username, email, color, role, created_at FROM users ORDER BY username ASC"
 	rows, err := db.DB.Query(query)
 	if err != nil {
 		return nil, err
@@ -76,7 +80,7 @@ func GetAllUsers() ([]User, error) {
 	var users []User
 	for rows.Next() {
 		var u User
-		if err := rows.Scan(&u.ID, &u.Username, &u.Email, &u.Color, &u.CreatedAt); err != nil {
+		if err := rows.Scan(&u.ID, &u.Username, &u.Email, &u.Color, &u.Role, &u.CreatedAt); err != nil {
 			return nil, err
 		}
 		users = append(users, u)
@@ -86,11 +90,11 @@ func GetAllUsers() ([]User, error) {
 
 // GetUserByID retrieves a single user by ID
 func GetUserByID(id int) (*User, error) {
-	query := "SELECT id, username, email, password_hash, color, created_at FROM users WHERE id = ?"
+	query := "SELECT id, username, email, password_hash, color, role, created_at FROM users WHERE id = ?"
 	row := db.DB.QueryRow(query, id)
 
 	var u User
-	err := row.Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Color, &u.CreatedAt)
+	err := row.Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Color, &u.Role, &u.CreatedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -101,21 +105,24 @@ func GetUserByID(id int) (*User, error) {
 }
 
 // UpdateUser updates a user's credentials. Hashes password if provided.
-func UpdateUser(id int, username, email, password, color string) error {
+func UpdateUser(id int, username, email, password, color, role string) error {
 	var err error
 	if color == "" {
 		color = "#4f46e5"
+	}
+	if role == "" {
+		role = "user"
 	}
 	if password != "" {
 		hash, err := HashPassword(password)
 		if err != nil {
 			return err
 		}
-		query := "UPDATE users SET username = ?, email = ?, password_hash = ?, color = ? WHERE id = ?"
-		_, err = db.DB.Exec(query, username, email, hash, color, id)
+		query := "UPDATE users SET username = ?, email = ?, password_hash = ?, color = ?, role = ? WHERE id = ?"
+		_, err = db.DB.Exec(query, username, email, hash, color, role, id)
 	} else {
-		query := "UPDATE users SET username = ?, email = ?, color = ? WHERE id = ?"
-		_, err = db.DB.Exec(query, username, email, color, id)
+		query := "UPDATE users SET username = ?, email = ?, color = ?, role = ? WHERE id = ?"
+		_, err = db.DB.Exec(query, username, email, color, role, id)
 	}
 	return err
 }

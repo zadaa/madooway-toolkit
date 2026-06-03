@@ -96,3 +96,23 @@ func GuestOnly(next http.HandlerFunc) http.HandlerFunc {
 		next(w, r)
 	}
 }
+
+// AdminOnly ensures the user is logged in as an admin
+func AdminOnly(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userID, loggedIn := GetSessionUser(r)
+		if !loggedIn {
+			http.Redirect(w, r, "/login", http.StatusSeeOther)
+			return
+		}
+		
+		var role string
+		err := db.DB.QueryRow("SELECT role FROM users WHERE id = ?", userID).Scan(&role)
+		if err != nil || role != "admin" {
+			// Redirect non-admins to /tasks (the main toolkit page)
+			http.Redirect(w, r, "/tasks", http.StatusSeeOther)
+			return
+		}
+		next(w, r)
+	}
+}

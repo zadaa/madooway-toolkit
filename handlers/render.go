@@ -23,7 +23,7 @@ func RenderTemplate(w http.ResponseWriter, r *http.Request, templateName string,
 	userID, loggedIn := middleware.GetSessionUser(r)
 	if loggedIn {
 		user = &models.User{ID: userID}
-		err := db.DB.QueryRow("SELECT username, email FROM users WHERE id = ?", userID).Scan(&user.Username, &user.Email)
+		err := db.DB.QueryRow("SELECT username, email, role FROM users WHERE id = ?", userID).Scan(&user.Username, &user.Email, &user.Role)
 		if err != nil {
 			user.Username = "User"
 		}
