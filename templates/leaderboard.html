@@ -5,8 +5,8 @@
     <!-- Podium Top 3 -->
     <div class="podium-container animate-slide-in">
         <!-- 2nd Place -->
-        {{if ge (len .) 2}}
-        {{$u := index . 1}}
+        {{if ge (len .Data) 2}}
+        {{$u := index .Data 1}}
         <div class="podium-card rank-2">
             <div class="podium-rank">
                 <i class="fa-solid fa-medal silver-medal"></i>
@@ -43,8 +43,8 @@
         {{end}}
 
         <!-- 1st Place (Winner) -->
-        {{if ge (len .) 1}}
-        {{$u := index . 0}}
+        {{if ge (len .Data) 1}}
+        {{$u := index .Data 0}}
         <div class="podium-card rank-1">
             <div class="podium-rank">
                 <i class="fa-solid fa-crown gold-crown"></i>
@@ -81,8 +81,8 @@
         {{end}}
 
         <!-- 3rd Place -->
-        {{if ge (len .) 3}}
-        {{$u := index . 2}}
+        {{if ge (len .Data) 3}}
+        {{$u := index .Data 2}}
         <div class="podium-card rank-3">
             <div class="podium-rank">
                 <i class="fa-solid fa-medal bronze-medal"></i>
@@ -120,7 +120,7 @@
     </div>
 
     <!-- Remaining Leaderboard List (Rank 4+) -->
-    {{if gt (len .) 3}}
+    {{if gt (len .Data) 3}}
     <div class="table-container animate-fade-in" style="margin-top: 30px;">
         <div class="table-header">
             <h3 style="font-family: 'Outfit', sans-serif; font-weight: 600;">Peringkat Lainnya</h3>
@@ -138,7 +138,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {{range $index, $u := .}}
+                    {{range $index, $u := .Data}}
                     {{if ge $index 3}}
                     <tr>
                         <td style="text-align: center; font-weight: 700; color: var(--text-muted);">#{{add $index 1}}</td>
