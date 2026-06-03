@@ -35,6 +35,8 @@ func main() {
 	// Authenticated Routes
 	mux.HandleFunc("GET /logout", handlers.HandleLogout)
 	mux.HandleFunc("GET /dashboard", middleware.AuthRequired(handlers.ShowDashboard))
+	mux.HandleFunc("GET /kpi", middleware.AuthRequired(handlers.ShowUserKPI))
+	mux.HandleFunc("GET /kpi/", middleware.AuthRequired(handlers.ShowUserKPI))
 	
 	mux.HandleFunc("GET /tasks", middleware.AuthRequired(handlers.ListTasks))
 	mux.HandleFunc("POST /tasks/create", middleware.AuthRequired(handlers.CreateTask))
@@ -54,6 +56,8 @@ func main() {
 	mux.HandleFunc("POST /clients/create", middleware.AuthRequired(handlers.CreateClient))
 	mux.HandleFunc("POST /clients/update", middleware.AuthRequired(handlers.UpdateClient))
 	mux.HandleFunc("POST /clients/delete", middleware.AuthRequired(handlers.DeleteClient))
+	mux.HandleFunc("POST /clients/sync", middleware.AuthRequired(handlers.SyncClients))
+
 
 	mux.HandleFunc("GET /trainings", middleware.AuthRequired(handlers.ListTrainings))
 	mux.HandleFunc("POST /trainings/create", middleware.AuthRequired(handlers.CreateTraining))
@@ -69,6 +73,13 @@ func main() {
 	mux.HandleFunc("POST /users/create", middleware.AuthRequired(handlers.CreateUser))
 	mux.HandleFunc("POST /users/update", middleware.AuthRequired(handlers.UpdateUser))
 	mux.HandleFunc("POST /users/delete", middleware.AuthRequired(handlers.DeleteUser))
+
+	// Leads Tracker Routes
+	mux.HandleFunc("GET /leads", middleware.AuthRequired(handlers.ListLeads))
+	mux.HandleFunc("POST /leads/create", middleware.AuthRequired(handlers.CreateLead))
+	mux.HandleFunc("POST /leads/update", middleware.AuthRequired(handlers.UpdateLead))
+	mux.HandleFunc("POST /leads/delete", middleware.AuthRequired(handlers.DeleteLead))
+	mux.HandleFunc("POST /leads/history", middleware.AuthRequired(handlers.UpdateLeadHistory))
 
 	// Root Redirect Handler
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {

@@ -34,7 +34,19 @@ func RenderTemplate(w http.ResponseWriter, r *http.Request, templateName string,
 		"templates/" + templateName,
 	}
 
-	tmpl, err := template.ParseFiles(files...)
+	tmpl := template.New("layout").Funcs(template.FuncMap{
+		"add": func(a, b int) int {
+			return a + b
+		},
+		"firstLetter": func(s string) string {
+			if len(s) == 0 {
+				return ""
+			}
+			return string([]rune(s)[0])
+		},
+	})
+	
+	tmpl, err := tmpl.ParseFiles(files...)
 	if err != nil {
 		http.Error(w, "Error parsing templates: "+err.Error(), http.StatusInternalServerError)
 		return

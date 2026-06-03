@@ -3,6 +3,7 @@ package models
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 
 	"task-manager-go/db"
@@ -105,4 +106,130 @@ func GetClientStatsByProvince() ([]ProvinceStat, error) {
 		stats = append(stats, ps)
 	}
 	return stats, nil
+}
+
+// SyncClientsFromRemote connects to a remote MySQL database and syncs companies to our local clients table
+func SyncClientsFromRemote(remoteHost, remoteUser, remotePassword string) (int, error) {
+	// Connect to remote server without specifying database
+	dsnWithoutDB := fmt.Sprintf("%s:%s@tcp(%s:3306)/?parseTime=true", remoteUser, remotePassword, remoteHost)
+	remoteDB, err := sql.Open("mysql", dsnWithoutDB)
+	if err != nil {
+		return 0, err
+	}
+	defer remoteDB.Close()
+
+	// Show databases to find the one containing "companies" table
+	rows, err := remoteDB.Query("SHOW DATABASES")
+	if err != nil {
+		return 0, err
+	}
+	defer rows.Close()
+
+	var targetDB string
+	for rows.Next() {
+		var dbName string
+		if err := rows.Scan(&dbName); err == nil {
+			if dbName == "information_schema" || dbName == "mysql" || dbName == "performance_schema" || dbName == "sys" {
+				continue
+			}
+			var tableExists int
+			checkQuery := fmt.Sprintf("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = '%s' AND table_name = 'companies'", dbName)
+			err2 := remoteDB.QueryRow(checkQuery).Scan(&tableExists)
+			if err2 == nil && tableExists > 0 {
+				targetDB = dbName
+				break
+			}
+		}
+	}
+
+	if targetDB == "" {
+		return 0, errors.New("remote table 'companies' not found in any database")
+	}
+
+	// Connect to the specific remote database
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:3306)/%s?parseTime=true", remoteUser, remotePassword, remoteHost, targetDB)
+	dbRemote, err := sql.Open("mysql", dsn)
+	if err != nil {
+		return 0, err
+	}
+	defer dbRemote.Close()
+
+	// Query remote columns dynamically to handle schema differences
+	companiesRows, err := dbRemote.Query("SELECT * FROM companies")
+	if err != nil {
+		return 0, err
+	}
+	defer companiesRows.Close()
+
+	cols, err := companiesRows.Columns()
+	if err != nil {
+		return 0, err
+	}
+
+	getRemoteValue := func(row map[string]interface{}, possibleKeys []string, defaultVal string) string {
+		for _, k := range possibleKeys {
+			if val, ok := row[k]; ok && val != nil {
+				if strVal, ok := val.(string); ok {
+					return strVal
+				}
+				if bytesVal, ok := val.([]byte); ok {
+					return string(bytesVal)
+				}
+			}
+		}
+		return defaultVal
+	}
+
+	syncCount := 0
+	for companiesRows.Next() {
+		columns := make([]interface{}, len(cols))
+		columnPointers := make([]interface{}, len(cols))
+		for i := range columns {
+			columnPointers[i] = &columns[i]
+		}
+
+		if err := companiesRows.Scan(columnPointers...); err != nil {
+			return syncCount, err
+		}
+
+		m := make(map[string]interface{})
+		for i, colName := range cols {
+			val := columns[i]
+			m[colName] = val
+		}
+
+		name := getRemoteValue(m, []string{"name", "company_name", "title"}, "")
+		if name == "" {
+			continue // Skip unnamed companies
+		}
+
+		shortName := getRemoteValue(m, []string{"short_name", "shortname", "code", "alias"}, "")
+		email := getRemoteValue(m, []string{"email", "contact_email"}, "")
+		phone := getRemoteValue(m, []string{"phone", "phone_number", "telp", "whatsapp"}, "")
+		picName := getRemoteValue(m, []string{"pic_name", "pic", "picname", "contact_name"}, "")
+		pricePackage := getRemoteValue(m, []string{"price_package", "package", "subscription", "plan"}, "Basic Plan")
+		logo := getRemoteValue(m, []string{"logo", "avatar", "image"}, "")
+		province := getRemoteValue(m, []string{"province", "provinsi", "region", "city"}, "DKI Jakarta")
+
+		var existingID int
+		err = db.DB.QueryRow("SELECT id FROM clients WHERE name = ?", name).Scan(&existingID)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return syncCount, err
+		}
+
+		if existingID > 0 {
+			query := `UPDATE clients SET short_name = ?, email = ?, phone = ?, pic_name = ?, price_package = ?, logo = ?, province = ? WHERE id = ?`
+			_, err = db.DB.Exec(query, shortName, email, phone, picName, pricePackage, logo, province, existingID)
+		} else {
+			query := `INSERT INTO clients (name, short_name, email, phone, pic_name, price_package, logo, province) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+			_, err = db.DB.Exec(query, name, shortName, email, phone, picName, pricePackage, logo, province)
+		}
+
+		if err != nil {
+			return syncCount, err
+		}
+		syncCount++
+	}
+
+	return syncCount, nil
 }

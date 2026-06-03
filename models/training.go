@@ -120,3 +120,23 @@ func GetTrainingScheduleByID(id, userID int) (*TrainingSchedule, error) {
 	}
 	return &ts, nil
 }
+
+// GetTrainingCountByUserAndPeriod counts how many times a user acted as a trainer in a period
+func GetTrainingCountByUserAndPeriod(username string, startDate, endDate string) (int, error) {
+	query := `SELECT COUNT(*) FROM training_schedules WHERE trainer = ?`
+	var args []interface{}
+	args = append(args, username)
+
+	if startDate != "" {
+		query += " AND DATE(training_date) >= ?"
+		args = append(args, startDate)
+	}
+	if endDate != "" {
+		query += " AND DATE(training_date) <= ?"
+		args = append(args, endDate)
+	}
+
+	var count int
+	err := db.DB.QueryRow(query, args...).Scan(&count)
+	return count, err
+}

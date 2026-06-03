@@ -42,6 +42,10 @@
                 <i class="fa-solid fa-chart-pie"></i>
                 <span>Dashboard</span>
             </a>
+            <a href="/kpi" class="menu-item {{if eq .ActiveTab "kpi"}}active{{end}}">
+                <i class="fa-solid fa-chart-line"></i>
+                <span>Dashboard User</span>
+            </a>
             
             <div class="menu-category">
                 <span class="category-title">Master Data</span>
@@ -64,6 +68,10 @@
                 <a href="/tickets" class="menu-item sub-item {{if eq .ActiveTab "tickets"}}active{{end}}">
                     <i class="fa-solid fa-ticket"></i>
                     <span>Daftar Tiket</span>
+                </a>
+                <a href="/leads" class="menu-item sub-item {{if eq .ActiveTab "leads"}}active{{end}}">
+                    <i class="fa-solid fa-funnel-dollar"></i>
+                    <span>Leads Tracker</span>
                 </a>
                 <a href="/trainings" class="menu-item sub-item {{if eq .ActiveTab "trainings"}}active{{end}}">
                     <i class="fa-solid fa-calendar-days"></i>

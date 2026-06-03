@@ -1,0 +1,531 @@
+{{define "content"}}
+<!-- Include Select2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+<style>
+/* Custom style for Select2 inside our dark/light theme */
+.select2-container--default .select2-selection--single {
+    background-color: var(--bg-input) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 12px !important;
+    height: 44px !important;
+    display: flex;
+    align-items: center;
+    transition: var(--transition-smooth);
+}
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    color: var(--text-primary) !important;
+    font-size: 14px;
+    padding-left: 16px !important;
+}
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 42px !important;
+    right: 10px !important;
+}
+.select2-dropdown {
+    background-color: var(--bg-select2-dropdown) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 12px !important;
+    box-shadow: var(--shadow-soft) !important;
+    overflow: hidden;
+}
+.select2-results__option {
+    color: var(--text-secondary) !important;
+    padding: 10px 16px !important;
+    font-size: 14px;
+}
+.select2-results__option--highlighted[aria-selected] {
+    background-color: var(--color-primary) !important;
+    color: #060910 !important;
+}
+.select2-results__option[aria-selected="true"] {
+    background-color: rgba(255, 123, 0, 0.15) !important;
+    color: var(--color-primary) !important;
+}
+.select2-search__field {
+    background-color: var(--bg-input) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 8px !important;
+    color: var(--text-primary) !important;
+}
+
+/* User profile header card */
+.user-kpi-header {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    padding: 24px 30px;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow-soft);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 20px;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+}
+.user-kpi-profile {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+.user-kpi-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: 700;
+    color: #fff;
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+}
+.user-kpi-meta h2 {
+    font-size: 20px;
+    margin-bottom: 4px;
+    font-family: 'Outfit', sans-serif;
+}
+.user-kpi-meta p {
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+.kpi-filter-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: flex-end;
+}
+.kpi-filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.kpi-filter-group label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+.kpi-filter-group input[type="date"] {
+    height: 44px;
+    padding: 10px 14px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    color: var(--text-primary);
+    font-size: 14px;
+    outline: none;
+    transition: var(--transition-smooth);
+}
+.kpi-filter-group input[type="date"]:focus {
+    border-color: var(--color-primary);
+    background: var(--bg-input-focus);
+}
+
+.kpi-filter-actions {
+    display: flex;
+    gap: 10px;
+    height: 44px;
+}
+
+/* Completion Rate Section */
+.kpi-completion-box {
+    margin-bottom: 24px;
+}
+
+/* Detail Table */
+.table-container {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    box-shadow: var(--shadow-soft);
+    padding: 24px;
+    margin-top: 24px;
+}
+.table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+.table-header h3 {
+    font-size: 18px;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.table th {
+    text-align: left;
+    padding: 14px 16px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 600;
+    border-bottom: 1px solid var(--border-color);
+    background-color: var(--bg-table-header);
+}
+.table td {
+    padding: 14px 16px;
+    font-size: 14px;
+    border-bottom: 1px solid var(--border-color);
+}
+.table tr:hover td {
+    background-color: var(--bg-table-row-hover);
+}
+.badge-status {
+    text-transform: uppercase;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    padding: 4px 10px;
+    border-radius: 50px;
+}
+.badge-status.status-Pending {
+    background: var(--status-pending-bg);
+    color: var(--status-pending);
+}
+.badge-status.status-In\ Progress {
+    background: var(--status-progress-bg);
+    color: var(--status-progress);
+}
+.badge-status.status-Completed {
+    background: var(--status-completed-bg);
+    color: var(--status-completed);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-secondary);
+}
+.empty-state i {
+    font-size: 40px;
+    margin-bottom: 12px;
+    color: var(--text-muted);
+}
+</style>
+
+<!-- Profile Header and Filter -->
+<div class="user-kpi-header animate-fade-in">
+    <div class="user-kpi-profile">
+        <div class="user-kpi-avatar" style="background-color: {{if .Data.SelectedUser.Color}}{{.Data.SelectedUser.Color}}{{else}}var(--color-primary){{end}};">
+            {{if .Data.SelectedUser.Username}}
+                {{firstLetter .Data.SelectedUser.Username | html}}
+            {{else}}
+                U
+            {{end}}
+        </div>
+        <div class="user-kpi-meta">
+            <h2>{{.Data.SelectedUser.Username}}</h2>
+            <p><i class="fa-solid fa-envelope" style="margin-right: 6px;"></i> {{.Data.SelectedUser.Email}}</p>
+        </div>
+    </div>
+    
+    <form action="/kpi" method="GET" class="kpi-filter-form">
+        <input type="hidden" name="filter" value="1">
+        
+        <div class="kpi-filter-group" style="min-width: 200px;">
+            <label for="user_id">User / Petugas</label>
+            <select name="user_id" id="user_id" style="width: 100%;">
+                {{range .Data.Users}}
+                <option value="{{.ID}}" {{if eq .ID $.Data.SelectedUserID}}selected{{end}}>{{.Username}}</option>
+                {{end}}
+            </select>
+        </div>
+        
+        <div class="kpi-filter-group">
+            <label for="start_date">Mulai Tanggal</label>
+            <input type="date" name="start_date" id="start_date" value="{{.Data.StartDate}}">
+        </div>
+        
+        <div class="kpi-filter-group">
+            <label for="end_date">Sampai Tanggal</label>
+            <input type="date" name="end_date" id="end_date" value="{{.Data.EndDate}}">
+        </div>
+        
+        <div class="kpi-filter-actions">
+            <button type="submit" class="btn btn-primary" style="height: 44px; padding: 0 20px;">
+                <i class="fa-solid fa-filter"></i> Filter
+            </button>
+            <a href="/kpi" class="btn btn-secondary" style="height: 44px; padding: 0 15px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none;" title="Reset Filter">
+                <i class="fa-solid fa-rotate-left"></i>
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- KPI Cards -->
+<div class="dashboard-grid animate-fade-in" style="animation-delay: 0.1s;">
+    <!-- Total Tugas -->
+    <div class="kpi-card total">
+        <div class="kpi-icon-wrapper">
+            <i class="fa-solid fa-list-check"></i>
+        </div>
+        <div class="kpi-content">
+            <h3>Total Tugas</h3>
+            <div class="kpi-value">{{.Data.TotalTasks}}</div>
+        </div>
+    </div>
+    
+    <!-- Pending -->
+    <div class="kpi-card pending">
+        <div class="kpi-icon-wrapper">
+            <i class="fa-solid fa-clock"></i>
+        </div>
+        <div class="kpi-content">
+            <h3>Tugas Pending</h3>
+            <div class="kpi-value">{{.Data.PendingTasks}}</div>
+        </div>
+    </div>
+    
+    <!-- In Progress -->
+    <div class="kpi-card in-progress">
+        <div class="kpi-icon-wrapper">
+            <i class="fa-solid fa-spinner"></i>
+        </div>
+        <div class="kpi-content">
+            <h3>Dalam Proses</h3>
+            <div class="kpi-value">{{.Data.ProgressTasks}}</div>
+        </div>
+    </div>
+    
+    <!-- Completed -->
+    <div class="kpi-card completed">
+        <div class="kpi-icon-wrapper">
+            <i class="fa-solid fa-circle-check"></i>
+        </div>
+        <div class="kpi-content">
+            <h3>Selesai</h3>
+            <div class="kpi-value">{{.Data.CompletedTasks}}</div>
+        </div>
+    </div>
+    
+    <!-- Petugas Training -->
+    <div class="kpi-card training">
+        <div class="kpi-icon-wrapper" style="background: rgba(155, 93, 229, 0.15); color: var(--color-purple);">
+            <i class="fa-solid fa-chalkboard-user"></i>
+        </div>
+        <div class="kpi-content">
+            <h3>Petugas Training</h3>
+            <div class="kpi-value">{{.Data.TrainingCount}} Kali</div>
+        </div>
+    </div>
+    
+    <!-- Total Leads -->
+    <div class="kpi-card leads">
+        <div class="kpi-icon-wrapper" style="background: rgba(0, 150, 255, 0.15); color: #0096ff;">
+            <i class="fa-solid fa-funnel-dollar"></i>
+        </div>
+        <div class="kpi-content">
+            <h3>Leads Diproses</h3>
+            <div class="kpi-value">{{.Data.LeadsCount}} Leads</div>
+        </div>
+    </div>
+</div>
+
+<!-- Completion Rate & Charts -->
+<div class="charts-grid animate-fade-in" style="animation-delay: 0.2s;">
+    <!-- Completion Rate Progress -->
+    <div class="completion-card" style="display: flex; flex-direction: column; justify-content: center; margin-bottom: 0;">
+        <div class="completion-info">
+            <div>
+                <h3>Tingkat Penyelesaian Tugas (KPI)</h3>
+                <span class="section-desc">Persentase tugas berstatus "Completed" dari total tugas dalam periode filter.</span>
+            </div>
+            <div class="completion-percentage">{{printf "%.1f" .Data.CompletionRate}}%</div>
+        </div>
+        
+        <div class="progress-bar-container" style="margin-bottom: 20px;">
+            <div class="progress-bar-fill" style="width: {{.Data.CompletionRate}}%;"></div>
+        </div>
+        
+        <div style="font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-circle-info" style="color: var(--color-primary);"></i>
+            <span>
+                Target KPI standard adalah 100%. Untuk periode ini, <strong>{{.Data.CompletedTasks}}</strong> dari <strong>{{.Data.TotalTasks}}</strong> tugas berhasil diselesaikan.
+            </span>
+        </div>
+    </div>
+    
+    <!-- Doughnut Chart for distribution -->
+    <div class="chart-card">
+        <div class="chart-header">
+            <h3>Distribusi Status Tugas</h3>
+        </div>
+        <div class="chart-body" style="display: flex; align-items: center; justify-content: center;">
+            <div class="chart-canvas-container" style="height: 200px; max-width: 320px;">
+                <canvas id="kpiStatusChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Detailed Tasks List -->
+<div class="table-container animate-fade-in" style="animation-delay: 0.3s;">
+    <div class="table-header">
+        <h3>Daftar Rincian Tugas</h3>
+        <span style="font-size: 13px; color: var(--text-secondary);">
+            {{if and .Data.StartDate .Data.EndDate}}
+                Periode: <strong>{{.Data.StartDate}}</strong> s/d <strong>{{.Data.EndDate}}</strong>
+            {{else if .Data.StartDate}}
+                Mulai: <strong>{{.Data.StartDate}}</strong>
+            {{else if .Data.EndDate}}
+                Sampai: <strong>{{.Data.EndDate}}</strong>
+            {{else}}
+                Semua Periode
+            {{end}}
+        </span>
+    </div>
+    
+    {{if .Data.Tasks}}
+    <div style="overflow-x: auto;">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th style="width: 50px;">No</th>
+                    <th>Judul Tugas</th>
+                    <th>Klien</th>
+                    <th>Kategori</th>
+                    <th>Tanggal Mulai</th>
+                    <th>Tenggat Waktu</th>
+                    <th style="width: 120px;">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range $index, $task := .Data.Tasks}}
+                <tr>
+                    <td style="color: var(--text-muted); font-weight: 600;">{{add $index 1}}</td>
+                    <td>
+                        <div style="font-weight: 600; color: var(--text-primary);">{{$task.Title}}</div>
+                        {{if $task.Description}}
+                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px; max-width: 350px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{$task.Description}}">
+                            {{$task.Description}}
+                        </div>
+                        {{end}}
+                    </td>
+                    <td>
+                        {{if $task.ClientName}}
+                        <span style="font-weight: 500;"><i class="fa-solid fa-user-tie" style="color: var(--color-secondary); margin-right: 4px;"></i> {{$task.ClientName}}</span>
+                        {{else}}
+                        <span style="color: var(--text-muted); font-style: italic;">Internal</span>
+                        {{end}}
+                    </td>
+                    <td>
+                        <span class="badge badge-category">{{$task.Category}}</span>
+                    </td>
+                    <td>
+                        <div style="font-size: 13px; color: var(--text-secondary);">
+                            <i class="fa-solid fa-calendar-plus" style="color: var(--color-primary); margin-right: 4px;"></i>
+                            {{$task.PrettyCreatedAt}}
+                        </div>
+                    </td>
+                    <td>
+                        <div class="task-due-date {{if $task.IsOverdue}}overdue-text{{end}}">
+                            <i class="fa-solid fa-calendar-day"></i>
+                            <span>{{if $task.DueDate.Valid}}{{$task.FormattedDueDate}}{{else}}Tidak ada tenggat{{end}}</span>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="badge-status status-{{$task.Status}}">{{$task.Status}}</span>
+                    </td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+    {{else}}
+    <div class="empty-state">
+        <i class="fa-solid fa-clipboard-question"></i>
+        <h3>Tidak ada tugas</h3>
+        <p>Belum ada data tugas yang terdaftar atau dikerjakan oleh user ini untuk periode tanggal terpilih.</p>
+    </div>
+    {{end}}
+</div>
+
+<!-- jQuery, Select2 & Chart JS Script -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+$(document).ready(function() {
+    // Initialize select2
+    $('#user_id').select2({
+        placeholder: "Cari & Pilih User...",
+        allowClear: false
+    });
+    
+    // Parse Chart stats data
+    const statusData = {{.Data.StatusJSON}};
+    
+    const ctx = document.getElementById('kpiStatusChart').getContext('2d');
+    
+    // Custom colors matching CSS variables
+    const colors = {
+        Pending: '#ff4d6d',
+        InProgress: '#ffb703',
+        Completed: '#2ec4b6'
+    };
+    
+    // Read current theme from body to check mode
+    const isLightMode = document.documentElement.classList.contains('light-mode');
+    
+    const chartData = {
+        labels: ['Pending', 'In Progress', 'Completed'],
+        datasets: [{
+            data: [
+                statusData.Pending || 0,
+                statusData['In Progress'] || 0,
+                statusData.Completed || 0
+            ],
+            backgroundColor: [colors.Pending, colors.InProgress, colors.Completed],
+            borderWidth: isLightMode ? 2 : 0,
+            borderColor: isLightMode ? '#ffffff' : 'transparent',
+            hoverOffset: 4
+        }]
+    };
+    
+    let kpiChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: chartData,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '70%',
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        color: isLightMode ? '#0f172a' : '#f8fafc',
+                        font: {
+                            family: "'Inter', sans-serif",
+                            size: 12
+                        },
+                        padding: 15
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const value = context.raw;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                            return ` ${context.label}: ${value} (${percentage}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Theme switch response
+    window.addEventListener('themeChanged', function() {
+        const currentIsLight = document.documentElement.classList.contains('light-mode');
+        kpiChart.options.plugins.legend.labels.color = currentIsLight ? '#0f172a' : '#f8fafc';
+        kpiChart.data.datasets[0].borderColor = currentIsLight ? '#ffffff' : 'transparent';
+        kpiChart.data.datasets[0].borderWidth = currentIsLight ? 2 : 0;
+        kpiChart.update();
+    });
+});
+</script>
+{{end}}

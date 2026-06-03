@@ -296,3 +296,50 @@ func GetKPIStats(userID int) (*KPIStats, error) {
 
 	return kpi, nil
 }
+
+// GetKPITasks retrieves tasks for a specific user within a date range based on created_at
+func GetKPITasks(userID int, startDate, endDate string) ([]Task, error) {
+	var queryParts []string
+	var args []interface{}
+
+	baseQuery := `SELECT t.id, t.user_id, t.title, COALESCE(t.description, ''), t.category, t.source, t.status, t.due_date, t.client_id, COALESCE(c.name, '') as client_name, t.created_at, t.updated_at 
+	              FROM tasks t 
+	              LEFT JOIN clients c ON t.client_id = c.id
+	              WHERE t.user_id = ?`
+	args = append(args, userID)
+
+	if startDate != "" {
+		queryParts = append(queryParts, "DATE(t.created_at) >= ?")
+		args = append(args, startDate)
+	}
+	if endDate != "" {
+		queryParts = append(queryParts, "DATE(t.created_at) <= ?")
+		args = append(args, endDate)
+	}
+
+	fullQuery := baseQuery
+	if len(queryParts) > 0 {
+		fullQuery += " AND " + strings.Join(queryParts, " AND ")
+	}
+
+	// Sort by created_at descending (newest first)
+	fullQuery += " ORDER BY t.created_at DESC"
+
+	rows, err := db.DB.Query(fullQuery, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var tasks []Task
+	for rows.Next() {
+		var t Task
+		err := rows.Scan(&t.ID, &t.UserID, &t.Title, &t.Description, &t.Category, &t.Source, &t.Status, &t.DueDate, &t.ClientID, &t.ClientName, &t.CreatedAt, &t.UpdatedAt)
+		if err != nil {
+			return nil, err
+		}
+		tasks = append(tasks, t)
+	}
+
+	return tasks, nil
+}

@@ -210,3 +210,26 @@ func DeleteClient(w http.ResponseWriter, r *http.Request) {
 
 	http.Redirect(w, r, "/clients?success=Klien+berhasil+dihapus", http.StatusSeeOther)
 }
+
+// SyncClients handles the database synchronization of clients
+func SyncClients(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Redirect(w, r, "/clients", http.StatusSeeOther)
+		return
+	}
+
+	remoteHost := "34.50.96.155"
+	remoteUser := "madoochatbot"
+	remotePassword := "Madoo2026!!!"
+
+	count, err := models.SyncClientsFromRemote(remoteHost, remoteUser, remotePassword)
+	if err != nil {
+		log.Printf("Error syncing clients from remote: %v", err)
+		errStr := strings.ReplaceAll(err.Error(), " ", "+")
+		http.Redirect(w, r, fmt.Sprintf("/clients?error=Gagal+sinkronisasi+klien:+%s", errStr), http.StatusSeeOther)
+		return
+	}
+
+	http.Redirect(w, r, fmt.Sprintf("/clients?success=Berhasil+sinkronisasi+%d+klien", count), http.StatusSeeOther)
+}
+

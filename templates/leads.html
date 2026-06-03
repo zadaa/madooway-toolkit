@@ -1,0 +1,646 @@
+{{define "content"}}
+<!-- Include Select2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+<style>
+/* Custom style for Select2 inside our dark/light theme */
+.select2-container--default .select2-selection--single {
+    background-color: var(--bg-input) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 12px !important;
+    height: 44px !important;
+    display: flex;
+    align-items: center;
+    transition: var(--transition-smooth);
+}
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    color: var(--text-primary) !important;
+    font-size: 14px;
+    padding-left: 16px !important;
+}
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 42px !important;
+    right: 10px !important;
+}
+.select2-dropdown {
+    background-color: var(--bg-select2-dropdown) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 12px !important;
+    box-shadow: var(--shadow-soft) !important;
+    overflow: hidden;
+}
+.select2-results__option {
+    color: var(--text-secondary) !important;
+    padding: 10px 16px !important;
+    font-size: 14px;
+}
+.select2-results__option--highlighted[aria-selected] {
+    background-color: var(--color-primary) !important;
+    color: #060910 !important;
+}
+.select2-results__option[aria-selected="true"] {
+    background-color: rgba(255, 123, 0, 0.15) !important;
+    color: var(--color-primary) !important;
+}
+.select2-search__field {
+    background-color: var(--bg-input) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 8px !important;
+    color: var(--text-primary) !important;
+}
+
+/* Custom premium styles for Lead Tracker badges */
+.badge-lead-status {
+    text-transform: uppercase;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    padding: 4px 10px;
+    border-radius: 50px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.badge-lead-status.status-Reachout {
+    background: rgba(155, 93, 229, 0.15);
+    color: var(--color-purple);
+    border: 1px solid rgba(155, 93, 229, 0.2);
+}
+.badge-lead-status.status-Demo {
+    background: rgba(255, 183, 3, 0.15);
+    color: var(--status-progress);
+    border: 1px solid rgba(255, 183, 3, 0.2);
+}
+.badge-lead-status.status-Convert {
+    background: rgba(46, 196, 182, 0.15);
+    color: var(--status-completed);
+    border: 1px solid rgba(46, 196, 182, 0.2);
+}
+
+.badge-lead-source {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 50px;
+    text-transform: uppercase;
+}
+.badge-lead-source.source-Referal {
+    background: rgba(0, 150, 255, 0.12);
+    color: #0096ff;
+    border: 1px solid rgba(0, 150, 255, 0.15);
+}
+.badge-lead-source.source-Linkedin {
+    background: rgba(10, 102, 194, 0.12);
+    color: #0a66c2;
+    border: 1px solid rgba(10, 102, 194, 0.15);
+}
+.badge-lead-source.source-Instagram {
+    background: rgba(225, 48, 108, 0.12);
+    color: #e1306c;
+    border: 1px solid rgba(225, 48, 108, 0.15);
+}
+.badge-lead-source.source-BP {
+    background: rgba(255, 123, 0, 0.12);
+    color: var(--color-primary);
+    border: 1px solid rgba(255, 123, 0, 0.15);
+}
+
+.leads-contact-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 13px;
+}
+.leads-contact-info span {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-secondary);
+}
+.leads-contact-info span i {
+    width: 14px;
+    color: var(--text-muted);
+}
+</style>
+
+<div class="tasks-page-header">
+    <div>
+        <p class="section-desc">Lacak leads prospek klien untuk tim marketing dan penjualan.</p>
+    </div>
+    
+    <button onclick="openAddLeadModal()" class="btn btn-primary">
+        <i class="fa-solid fa-plus"></i>
+        <span>Lead Baru</span>
+    </button>
+</div>
+
+<!-- Filters Section -->
+<div class="filter-row-container">
+    <div class="filter-grid">
+        <!-- Search input -->
+        <div class="filter-input-wrapper search-group" style="flex: 2 1 300px;">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="searchFilter" placeholder="Cari nama perusahaan atau kontak..." oninput="applyFilters()">
+        </div>
+        
+        <!-- Source filter -->
+        <div class="filter-select-wrapper filter-group" style="flex: 1 1 150px;">
+            <select id="sourceFilter" onchange="applyFilters()">
+                <option value="">Semua Sumber (Source)</option>
+                <option value="Referal">Referal</option>
+                <option value="Linkedin">Linkedin</option>
+                <option value="Instagram">Instagram</option>
+                <option value="BP">BP</option>
+            </select>
+        </div>
+
+        <!-- Status filter -->
+        <div class="filter-select-wrapper filter-group" style="flex: 1 1 150px;">
+            <select id="statusFilter" onchange="applyFilters()">
+                <option value="">Semua Status</option>
+                <option value="Reachout">Reachout</option>
+                <option value="Demo">Demo</option>
+                <option value="Convert">Convert</option>
+            </select>
+        </div>
+        
+        <!-- Reset button -->
+        <button onclick="resetFilters()" class="btn-reset" title="Hapus Filter">
+            <i class="fa-solid fa-rotate-left"></i>
+        </button>
+    </div>
+</div>
+
+<!-- Table View -->
+{{if not .Data.Leads}}
+<div class="empty-state animate-fade-in" id="emptyStateNoData">
+    <i class="fa-solid fa-funnel-dollar empty-icon"></i>
+    <h3>Belum Ada Leads</h3>
+    <p>Belum ada data leads prospek yang terdaftar. Tambahkan lead penjualan Anda untuk memulai tracking!</p>
+    <button onclick="openAddLeadModal()" class="btn btn-primary btn-sm">Mulai Tambah Lead</button>
+</div>
+{{else}}
+<div class="table-responsive" id="tableResponsiveContainer">
+    <table class="premium-table" id="leadsTable">
+        <thead>
+            <tr>
+                <th style="width: 50px;">No.</th>
+                <th>Perusahaan</th>
+                <th>Kontak Prospek</th>
+                <th>Jumlah Karyawan</th>
+                <th>Sumber (Source)</th>
+                <th>Status</th>
+                <th>Sales (Petugas)</th>
+                <th style="width: 120px; text-align: center;">Aksi</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{range .Data.Leads}}
+            <tr data-id="{{.ID}}"
+                data-source="{{.Source}}"
+                data-company="{{.CompanyName}}"
+                data-contact="{{.ContactName}}"
+                data-phone="{{.Phone}}"
+                data-email="{{.Email}}"
+                data-employees="{{.EmployeeCount}}"
+                data-status="{{.Status}}"
+                data-sales-id="{{.SalesID}}">
+                
+                <td class="row-index" style="font-weight: 600; color: var(--text-muted);"></td>
+                
+                <td>
+                    <div style="font-weight: 700; color: var(--text-primary); font-size: 15px;">
+                        {{.CompanyName}}
+                    </div>
+                </td>
+                
+                <td>
+                    <div class="leads-contact-info">
+                        <strong style="color: var(--text-primary);">{{.ContactName}}</strong>
+                        {{if .Email}}
+                        <span><i class="fa-solid fa-envelope"></i> {{.Email}}</span>
+                        {{end}}
+                        {{if .Phone}}
+                        <span><i class="fa-solid fa-phone"></i> {{.Phone}}</span>
+                        {{end}}
+                    </div>
+                </td>
+                
+                <td>
+                    <div style="font-weight: 600; color: var(--text-primary);">
+                        <i class="fa-solid fa-users" style="color: var(--text-muted); margin-right: 4px; font-size: 13px;"></i>
+                        {{.EmployeeCount}} Orang
+                    </div>
+                </td>
+
+                <td>
+                    <span class="badge-lead-source source-{{.Source}}">
+                        {{if eq .Source "Referal"}}
+                        <i class="fa-solid fa-share-nodes"></i>
+                        {{else if eq .Source "Linkedin"}}
+                        <i class="fa-brands fa-linkedin"></i>
+                        {{else if eq .Source "Instagram"}}
+                        <i class="fa-brands fa-instagram"></i>
+                        {{else}}
+                        <i class="fa-solid fa-briefcase"></i>
+                        {{end}}
+                        {{.Source}}
+                    </span>
+                </td>
+                
+                <td>
+                    <span class="badge-lead-status status-{{.Status}}">
+                        {{if eq .Status "Reachout"}}
+                        <i class="fa-solid fa-comments"></i>
+                        {{else if eq .Status "Demo"}}
+                        <i class="fa-solid fa-chalkboard-user"></i>
+                        {{else}}
+                        <i class="fa-solid fa-handshake"></i>
+                        {{end}}
+                        {{.Status}}
+                    </span>
+                </td>
+                
+                <td>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div class="avatar" style="width: 28px; height: 28px; font-size: 11px; font-weight: 700;">
+                            {{firstLetter .SalesName}}
+                        </div>
+                        <span style="font-weight: 550; font-size: 13px; color: var(--text-primary);">{{.SalesName}}</span>
+                    </div>
+                </td>
+                
+                <td>
+                    <textarea class="lead-history-data" style="display: none;">{{.FollowUpHistory}}</textarea>
+                    <div class="table-actions" style="justify-content: center;">
+                        <button class="btn-action-edit" title="History Follow-up"
+                                style="background: rgba(155, 93, 229, 0.08); border: 1px solid rgba(155, 93, 229, 0.15); color: var(--color-purple);"
+                                data-id="{{.ID}}"
+                                data-company="{{.CompanyName}}"
+                                onclick="openHistoryModal(this)">
+                            <i class="fa-solid fa-clock-rotate-left"></i>
+                        </button>
+                        <button class="btn-action-edit" title="Edit Lead"
+                                data-id="{{.ID}}"
+                                data-source="{{.Source}}"
+                                data-company="{{.CompanyName}}"
+                                data-contact="{{.ContactName}}"
+                                data-phone="{{.Phone}}"
+                                data-email="{{.Email}}"
+                                data-employees="{{.EmployeeCount}}"
+                                data-status="{{.Status}}"
+                                data-sales-id="{{.SalesID}}"
+                                onclick="openEditLeadModal(this)">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </button>
+                        
+                        <form action="/leads/delete" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus lead prospek ini?')" style="display:inline;">
+                            <input type="hidden" name="id" value="{{.ID}}">
+                            <button type="submit" class="btn-action-delete" title="Hapus Lead">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
+</div>
+
+<!-- Empty search state -->
+<div class="empty-state animate-fade-in" id="tableEmptyState" style="display: none;">
+    <i class="fa-solid fa-magnifying-glass empty-icon"></i>
+    <h3>Hasil Tidak Ditemukan</h3>
+    <p>Tidak ada data lead yang cocok dengan pencarian atau filter yang Anda terapkan.</p>
+</div>
+{{end}}
+
+<!-- Unified Leads Modal (Create & Edit) -->
+<div id="leadModal" class="modal">
+    <div class="modal-content animate-slide-in">
+        <div class="modal-header">
+            <h3 id="leadModalTitle">Tambah Lead Baru</h3>
+            <span class="close-modal" onclick="closeLeadModal()">&times;</span>
+        </div>
+        
+        <form id="leadForm" action="/leads/create" method="POST">
+            <input type="hidden" id="leadID" name="id">
+            
+            <div class="form-row">
+                <div class="form-group col-half">
+                    <label for="leadCompanyName">Nama Perusahaan / Organisasi</label>
+                    <input type="text" id="leadCompanyName" name="company_name" required placeholder="Contoh: PT. Sumber Makmur">
+                </div>
+                <div class="form-group col-half">
+                    <label for="leadContactName">Nama Kontak Prospek</label>
+                    <input type="text" id="leadContactName" name="contact_name" required placeholder="Contoh: Andi Wijaya">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group col-half">
+                    <label for="leadEmail">Alamat Email</label>
+                    <input type="email" id="leadEmail" name="email" placeholder="contoh@perusahaan.com">
+                </div>
+                <div class="form-group col-half">
+                    <label for="leadPhone">Nomor Telepon / WhatsApp</label>
+                    <input type="text" id="leadPhone" name="phone" placeholder="08123456789">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group col-half">
+                    <label for="leadEmployeeCount">Jumlah Karyawan</label>
+                    <input type="number" id="leadEmployeeCount" name="employee_count" min="0" placeholder="0" required>
+                </div>
+                <div class="form-group col-half">
+                    <label for="leadSource">Sumber Leads (Source)</label>
+                    <select id="leadSource" name="source" required style="width: 100%;">
+                        <option value="Referal">Referal</option>
+                        <option value="Linkedin">Linkedin</option>
+                        <option value="Instagram">Instagram</option>
+                        <option value="BP">BP</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group col-half">
+                    <label for="leadStatus">Status Prospek</label>
+                    <select id="leadStatus" name="status" required style="width: 100%;">
+                        <option value="Reachout">Reachout</option>
+                        <option value="Demo">Demo</option>
+                        <option value="Convert">Convert</option>
+                    </select>
+                </div>
+                <div class="form-group col-half">
+                    <label for="leadSalesID">Sales (Petugas)</label>
+                    <select id="leadSalesID" name="sales_id" required style="width: 100%;">
+                        {{range .Data.Users}}
+                        <option value="{{.ID}}">{{.Username}}</option>
+                        {{end}}
+                    </select>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeLeadModal()">Batal</button>
+                <button type="submit" class="btn btn-primary">Simpan</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Unified Leads Follow-up History Modal -->
+<div id="historyModal" class="modal">
+    <div class="modal-content animate-slide-in">
+        <div class="modal-header">
+            <h3 id="historyModalTitle">History Follow-up</h3>
+            <span class="close-modal" onclick="closeHistoryModal()">&times;</span>
+        </div>
+        
+        <form id="historyForm" action="/leads/history" method="POST">
+            <input type="hidden" id="historyLeadID" name="id">
+            
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label for="historyLog">Catatan Progres Follow-up</label>
+                <div style="display: flex; gap: 10px; margin-bottom: 10px; margin-top: 5px;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="insertTimestamp()" style="padding: 6px 12px; font-size: 12px; height: auto;">
+                        <i class="fa-solid fa-clock"></i> Sisipkan Penanda Waktu (Timestamp)
+                    </button>
+                </div>
+                <textarea id="historyLog" name="follow_up_history" rows="12" placeholder="Belum ada history follow-up. Klik tombol penanda waktu di atas untuk menyisipkan log progres baru..." style="font-family: 'Inter', sans-serif; line-height: 1.6; padding: 16px; border-radius: 12px; font-size: 13px; width: 100%; border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-primary); outline: none; transition: var(--transition-smooth); box-sizing: border-box; resize: vertical;"></textarea>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeHistoryModal()">Batal</button>
+                <button type="submit" class="btn btn-primary">Simpan History</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+    // Live Client Side Filtering Function
+    function applyFilters() {
+        const searchInput = document.getElementById('searchFilter');
+        if (!searchInput) return; // Exit if table is empty
+
+        const query = searchInput.value.toLowerCase().trim();
+        const sourceVal = document.getElementById('sourceFilter').value;
+        const statusVal = document.getElementById('statusFilter').value;
+        
+        const table = document.getElementById('leadsTable');
+        const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+        
+        let visibleCount = 0;
+        
+        for (let i = 0; i < rows.length; i++) {
+            const row = rows[i];
+            const company = row.getAttribute('data-company').toLowerCase();
+            const contact = row.getAttribute('data-contact').toLowerCase();
+            const email = row.getAttribute('data-email').toLowerCase();
+            const source = row.getAttribute('data-source');
+            const status = row.getAttribute('data-status');
+            
+            const matchesSearch = company.includes(query) || contact.includes(query) || email.includes(query);
+            const matchesSource = !sourceVal || source === sourceVal;
+            const matchesStatus = !statusVal || status === statusVal;
+            
+            if (matchesSearch && matchesSource && matchesStatus) {
+                row.style.display = '';
+                visibleCount++;
+                // Update dynamic index column
+                row.getElementsByClassName('row-index')[0].textContent = visibleCount + ".";
+            } else {
+                row.style.display = 'none';
+            }
+        }
+        
+        const emptyState = document.getElementById('tableEmptyState');
+        const tableContainer = document.getElementById('tableResponsiveContainer');
+        
+        if (visibleCount === 0) {
+            if (emptyState) emptyState.style.display = 'flex';
+            if (tableContainer) tableContainer.style.display = 'none';
+        } else {
+            if (emptyState) emptyState.style.display = 'none';
+            if (tableContainer) tableContainer.style.display = 'block';
+        }
+    }
+
+    function resetFilters() {
+        const searchFilterEl = document.getElementById('searchFilter');
+        if (searchFilterEl) {
+            searchFilterEl.value = '';
+            document.getElementById('sourceFilter').value = '';
+            document.getElementById('statusFilter').value = '';
+            applyFilters();
+        }
+    }
+
+    // Modal Control Functions
+    function openAddLeadModal() {
+        const modal = document.getElementById('leadModal');
+        const modalTitle = document.getElementById('leadModalTitle');
+        const form = document.getElementById('leadForm');
+        
+        if (!modal) return;
+        
+        modalTitle.textContent = "Tambah Lead Baru";
+        form.action = "/leads/create";
+        document.getElementById('leadID').value = "";
+        form.reset();
+        
+        // Trigger Select2 reset
+        $('#leadSource').val('Referal').trigger('change');
+        $('#leadStatus').val('Reachout').trigger('change');
+        
+        // Default to active session user if available
+        const currentSalesID = "{{.User.ID}}";
+        if (currentSalesID) {
+            $('#leadSalesID').val(currentSalesID).trigger('change');
+        }
+        
+        modal.style.display = "flex";
+    }
+
+    function openEditLeadModal(btn) {
+        const modal = document.getElementById('leadModal');
+        const modalTitle = document.getElementById('leadModalTitle');
+        const form = document.getElementById('leadForm');
+        
+        if (!modal) return;
+        
+        modalTitle.textContent = "Edit Lead";
+        form.action = "/leads/update";
+        
+        const id = btn.getAttribute('data-id');
+        const company = btn.getAttribute('data-company');
+        const contact = btn.getAttribute('data-contact');
+        const email = btn.getAttribute('data-email');
+        const phone = btn.getAttribute('data-phone');
+        const employees = btn.getAttribute('data-employees');
+        const source = btn.getAttribute('data-source');
+        const status = btn.getAttribute('data-status');
+        const salesId = btn.getAttribute('data-sales-id');
+        
+        document.getElementById('leadID').value = id;
+        document.getElementById('leadCompanyName').value = company;
+        document.getElementById('leadContactName').value = contact;
+        document.getElementById('leadEmail').value = email;
+        document.getElementById('leadPhone').value = phone;
+        document.getElementById('leadEmployeeCount').value = employees;
+        
+        // Trigger Select2 update
+        $('#leadSource').val(source).trigger('change');
+        $('#leadStatus').val(status).trigger('change');
+        $('#leadSalesID').val(salesId).trigger('change');
+        
+        modal.style.display = "flex";
+    }
+
+    function closeLeadModal() {
+        const modal = document.getElementById('leadModal');
+        if (modal) {
+            modal.style.display = "none";
+        }
+    }
+
+    function openHistoryModal(btn) {
+        const modal = document.getElementById('historyModal');
+        const modalTitle = document.getElementById('historyModalTitle');
+        const leadId = btn.getAttribute('data-id');
+        const company = btn.getAttribute('data-company');
+        
+        const row = btn.closest('tr');
+        const historyData = row.querySelector('.lead-history-data').value;
+        
+        document.getElementById('historyLeadID').value = leadId;
+        modalTitle.innerHTML = `<i class="fa-solid fa-clock-rotate-left" style="color: var(--color-purple);"></i> &nbsp;History Follow-up - <strong>${company}</strong>`;
+        
+        const historyTextarea = document.getElementById('historyLog');
+        historyTextarea.value = historyData;
+        
+        modal.style.display = "flex";
+        historyTextarea.scrollTop = historyTextarea.scrollHeight; // Scroll to bottom
+    }
+
+    function closeHistoryModal() {
+        const modal = document.getElementById('historyModal');
+        if (modal) {
+            modal.style.display = "none";
+        }
+    }
+
+    function insertTimestamp() {
+        const textarea = document.getElementById('historyLog');
+        const now = new Date();
+        
+        const months = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agt", "Sep", "Okt", "Nov", "Des"];
+        const day = String(now.getDate()).padStart(2, '0');
+        const month = months[now.getMonth()];
+        const year = now.getFullYear();
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        
+        const formattedDate = `${day} ${month} ${year}, ${hours}:${minutes}`;
+        const username = "{{.User.Username}}";
+        
+        const prefix = textarea.value.trim() === "" ? "" : "\n";
+        const timestampText = `${prefix}[${formattedDate} - ${username}]: `;
+        
+        const startPos = textarea.selectionStart;
+        const endPos = textarea.selectionEnd;
+        const text = textarea.value;
+        
+        textarea.value = text.substring(0, startPos) + timestampText + text.substring(endPos);
+        textarea.focus();
+        const newCursorPos = startPos + timestampText.length;
+        textarea.setSelectionRange(newCursorPos, newCursorPos);
+    }
+
+    $(document).ready(function() {
+        // Initialize Select2 search dropdowns in forms
+        $('#leadSource').select2({
+            placeholder: "Pilih Sumber Leads...",
+            allowClear: false,
+            dropdownParent: $('#leadModal')
+        });
+
+        $('#leadStatus').select2({
+            placeholder: "Pilih Status...",
+            allowClear: false,
+            dropdownParent: $('#leadModal')
+        });
+
+        $('#leadSalesID').select2({
+            placeholder: "Pilih Sales (Petugas)...",
+            allowClear: false,
+            dropdownParent: $('#leadModal')
+        });
+
+        // Click outside modal closure
+        window.addEventListener('click', function(e) {
+            const leadModal = document.getElementById('leadModal');
+            if (e.target === leadModal) {
+                closeLeadModal();
+            }
+            const historyModal = document.getElementById('historyModal');
+            if (e.target === historyModal) {
+                closeHistoryModal();
+            }
+        });
+        
+        // Initial filter index execution
+        applyFilters();
+    });
+</script>
+{{end}}
