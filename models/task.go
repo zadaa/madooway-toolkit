@@ -11,6 +11,7 @@ import (
 type Task struct {
 	ID          int
 	UserID      int
+	UserName    string
 	Title       string
 	Description string
 	Category    string
@@ -116,9 +117,10 @@ func GetTasksByUserID(userID int, search, category, status string) ([]Task, erro
 	var queryParts []string
 	var args []interface{}
 
-	baseQuery := `SELECT t.id, t.user_id, t.title, COALESCE(t.description, ''), t.category, t.source, t.status, t.due_date, t.client_id, COALESCE(c.name, '') as client_name, t.created_at, t.updated_at 
+	baseQuery := `SELECT t.id, t.user_id, COALESCE(u.username, '') as user_name, t.title, COALESCE(t.description, ''), t.category, t.source, t.status, t.due_date, t.client_id, COALESCE(c.name, '') as client_name, t.created_at, t.updated_at 
 	              FROM tasks t 
-	              LEFT JOIN clients c ON t.client_id = c.id`
+	              LEFT JOIN clients c ON t.client_id = c.id
+	              LEFT JOIN users u ON t.user_id = u.id`
 
 	if search != "" {
 		queryParts = append(queryParts, "(t.title LIKE ? OR t.description LIKE ?)")
@@ -150,7 +152,7 @@ func GetTasksByUserID(userID int, search, category, status string) ([]Task, erro
 	var tasks []Task
 	for rows.Next() {
 		var t Task
-		err := rows.Scan(&t.ID, &t.UserID, &t.Title, &t.Description, &t.Category, &t.Source, &t.Status, &t.DueDate, &t.ClientID, &t.ClientName, &t.CreatedAt, &t.UpdatedAt)
+		err := rows.Scan(&t.ID, &t.UserID, &t.UserName, &t.Title, &t.Description, &t.Category, &t.Source, &t.Status, &t.DueDate, &t.ClientID, &t.ClientName, &t.CreatedAt, &t.UpdatedAt)
 		if err != nil {
 			return nil, err
 		}

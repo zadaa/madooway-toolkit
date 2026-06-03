@@ -502,4 +502,9 @@ func runMigrations() {
 		}
 		log.Println("Database migration completed: follow_up_history column added to leads table")
 	}
+
+	// Migrate existing 'Undefined' categories to 'Lain-lain' in tasks and tickets
+	_, _ = DB.Exec("UPDATE tasks SET category = 'Lain-lain' WHERE category = 'Undefined'")
+	_, _ = DB.Exec("UPDATE tickets SET category = 'Lain-lain' WHERE category = 'Undefined'")
+	log.Println("Database migration completed: updated 'Undefined' categories to 'Lain-lain'")
 }

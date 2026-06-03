@@ -14,6 +14,7 @@ import (
 type TasksPageData struct {
 	Tasks          []models.Task
 	Clients        []models.Client
+	Users          []models.User
 	SearchQuery    string
 	ActiveCategory string
 	ActiveStatus   string
@@ -40,9 +41,16 @@ func ListTasks(w http.ResponseWriter, r *http.Request) {
 		clients = []models.Client{}
 	}
 
+	users, err := models.GetAllUsers()
+	if err != nil {
+		log.Printf("Error fetching users for tasks: %v", err)
+		users = []models.User{}
+	}
+
 	data := TasksPageData{
 		Tasks:          tasks,
 		Clients:        clients,
+		Users:          users,
 		SearchQuery:    search,
 		ActiveCategory: category,
 		ActiveStatus:   status,
