@@ -188,3 +188,71 @@ func CheckNIPExists(nip string, excludeID int) (bool, error) {
 	return count > 0, err
 }
 
+type LeaderboardEntry struct {
+	Rank          int
+	UserID        int
+	Username      string
+	Email         string
+	Color         string
+	Role          string
+	LeadsCount    int
+	TicketsCount  int
+	TasksCount    int
+	TotalActivity int
+}
+
+// GetLeaderboard returns the list of users ranked by activity (leads, completed tickets, completed tasks)
+func GetLeaderboard() ([]LeaderboardEntry, error) {
+	query := `
+		SELECT 
+			u.id, 
+			u.username, 
+			u.email, 
+			u.color, 
+			u.role,
+			COALESCE(leads_tbl.cnt, 0) as leads_count,
+			COALESCE(tickets_tbl.cnt, 0) as tickets_count,
+			COALESCE(tasks_tbl.cnt, 0) as tasks_count,
+			(COALESCE(leads_tbl.cnt, 0) + COALESCE(tickets_tbl.cnt, 0) + COALESCE(tasks_tbl.cnt, 0)) as total_activity
+		FROM users u
+		LEFT JOIN (
+			SELECT sales_id, COUNT(*) as cnt 
+			FROM leads 
+			GROUP BY sales_id
+		) leads_tbl ON u.id = leads_tbl.sales_id
+		LEFT JOIN (
+			SELECT ta.user_id, COUNT(*) as cnt
+			FROM ticket_assignees ta
+			JOIN tickets t ON ta.ticket_id = t.id
+			WHERE t.status = 'Completed'
+			GROUP BY ta.user_id
+		) tickets_tbl ON u.id = tickets_tbl.user_id
+		LEFT JOIN (
+			SELECT user_id, COUNT(*) as cnt 
+			FROM tasks 
+			WHERE status = 'Completed'
+			GROUP BY user_id
+		) tasks_tbl ON u.id = tasks_tbl.user_id
+		ORDER BY total_activity DESC, u.username ASC
+	`
+	rows, err := db.DB.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var entries []LeaderboardEntry
+	rank := 1
+	for rows.Next() {
+		var e LeaderboardEntry
+		err := rows.Scan(&e.UserID, &e.Username, &e.Email, &e.Color, &e.Role, &e.LeadsCount, &e.TicketsCount, &e.TasksCount, &e.TotalActivity)
+		if err != nil {
+			return nil, err
+		}
+		e.Rank = rank
+		entries = append(entries, e)
+		rank++
+	}
+	return entries, nil
+}
+

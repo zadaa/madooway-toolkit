@@ -37,6 +37,7 @@ func main() {
 	mux.HandleFunc("GET /dashboard", middleware.AdminOnly(handlers.ShowDashboard))
 	mux.HandleFunc("GET /kpi", middleware.AdminOnly(handlers.ShowUserKPI))
 	mux.HandleFunc("GET /kpi/", middleware.AdminOnly(handlers.ShowUserKPI))
+	mux.HandleFunc("GET /leaderboard", middleware.AdminOnly(handlers.ShowLeaderboard))
 	
 	mux.HandleFunc("GET /tasks", middleware.AuthRequired(handlers.ListTasks))
 	mux.HandleFunc("POST /tasks/create", middleware.AuthRequired(handlers.CreateTask))
