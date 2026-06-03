@@ -36,27 +36,29 @@ func InitDB() {
 	// 1. Establish connection to MySQL server without database to create it if it doesn't exist
 	tempDB, err := sql.Open("mysql", dsnWithoutDB)
 	if err != nil {
-		log.Fatalf("Error opening connection to MySQL server: %v", err)
+		log.Printf("Warning: Error opening connection to MySQL server: %v (continuing...)\n", err)
+	} else {
+		defer tempDB.Close()
+		// Verify MySQL server is reachable
+		err = tempDB.Ping()
+		if err != nil {
+			log.Printf("Warning: Error pinging MySQL server: %v (continuing...)\n", err)
+		} else {
+			// Create database if it doesn't exist
+			_, err = tempDB.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS `%s` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci", cfg.DBName))
+			if err != nil {
+				log.Printf("Warning: Error creating database %s: %v (continuing...)\n", cfg.DBName, err)
+			} else {
+				log.Printf("Database '%s' verified/created successfully\n", cfg.DBName)
+			}
+		}
 	}
-	defer tempDB.Close()
-
-	// Verify MySQL server is reachable
-	err = tempDB.Ping()
-	if err != nil {
-		log.Fatalf("Error pinging MySQL server (please verify MySQL is running and credentials in .env are correct): %v", err)
-	}
-
-	// Create database if it doesn't exist
-	_, err = tempDB.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS `%s` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci", cfg.DBName))
-	if err != nil {
-		log.Printf("Warning: Error creating database %s: %v (continuing...)\n", cfg.DBName, err)
-	}
-	log.Printf("Database '%s' verified/created successfully\n", cfg.DBName)
 
 	// 2. Establish connection to the target database
 	DB, err = sql.Open("mysql", dsn)
 	if err != nil {
-		log.Fatalf("Error opening connection to database %s: %v", cfg.DBName, err)
+		log.Printf("Warning: Error opening connection to database %s: %v (continuing...)\n", cfg.DBName, err)
+		return
 	}
 
 	// Connection pool settings
@@ -66,7 +68,8 @@ func InitDB() {
 
 	err = DB.Ping()
 	if err != nil {
-		log.Fatalf("Error pinging database %s: %v", cfg.DBName, err)
+		log.Printf("Warning: Error pinging database %s: %v. Database might not be ready yet. Skipping migrations.\n", cfg.DBName, err)
+		return
 	}
 
 	log.Println("Database connection pool established successfully")
