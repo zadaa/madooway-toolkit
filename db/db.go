@@ -49,7 +49,7 @@ func InitDB() {
 	// Create database if it doesn't exist
 	_, err = tempDB.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS `%s` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci", cfg.DBName))
 	if err != nil {
-		log.Fatalf("Error creating database %s: %v", cfg.DBName, err)
+		log.Printf("Warning: Error creating database %s: %v (continuing...)\n", cfg.DBName, err)
 	}
 	log.Printf("Database '%s' verified/created successfully\n", cfg.DBName)
 
@@ -459,4 +459,44 @@ func runMigrations() {
 		log.Fatalf("Error creating ticket_assignees table: %v", err)
 	}
 	log.Println("Table 'ticket_assignees' verified/created")
+
+	// Create Leads table
+	leadsTableQuery := `
+	CREATE TABLE IF NOT EXISTS leads (
+		id INT AUTO_INCREMENT PRIMARY KEY,
+		source VARCHAR(50) NOT NULL,
+		company_name VARCHAR(150) NOT NULL,
+		contact_name VARCHAR(150) NOT NULL,
+		phone VARCHAR(20),
+		email VARCHAR(100),
+		employee_count INT DEFAULT 0,
+		status VARCHAR(50) NOT NULL DEFAULT 'Reachout',
+		sales_id INT NOT NULL,
+		follow_up_history TEXT NULL,
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+		FOREIGN KEY (sales_id) REFERENCES users(id) ON DELETE CASCADE
+	) ENGINE=InnoDB;`
+
+	_, err = DB.Exec(leadsTableQuery)
+	if err != nil {
+		log.Fatalf("Error creating leads table: %v", err)
+	}
+	log.Println("Table 'leads' verified/created")
+
+	// Check if follow_up_history column exists in leads table
+	var followUpHistoryExists int
+	checkFollowUpQuery := `SELECT COUNT(*) FROM information_schema.COLUMNS 
+	                       WHERE TABLE_SCHEMA = DATABASE() 
+	                       AND TABLE_NAME = 'leads' 
+	                       AND COLUMN_NAME = 'follow_up_history'`
+	err = DB.QueryRow(checkFollowUpQuery).Scan(&followUpHistoryExists)
+	if err == nil && followUpHistoryExists == 0 {
+		log.Println("Migrating leads table: adding follow_up_history column")
+		_, err = DB.Exec("ALTER TABLE leads ADD COLUMN follow_up_history TEXT NULL")
+		if err != nil {
+			log.Fatalf("Error adding follow_up_history column to leads table: %v", err)
+		}
+		log.Println("Database migration completed: follow_up_history column added to leads table")
+	}
 }
