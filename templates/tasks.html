@@ -77,14 +77,16 @@
             </select>
         </div>
 
-        <div class="filter-input-wrapper date-group" style="display: flex; align-items: center; gap: 8px;">
-            <span style="font-size: 11px; color: var(--text-secondary); white-space: nowrap; font-weight: 500;">Dari:</span>
-            <input type="date" id="startDateFilter" onchange="currentPage = 1; applyFilters()" style="padding: 10px 12px; font-size: 12px;">
-        </div>
-        
-        <div class="filter-input-wrapper date-group" style="display: flex; align-items: center; gap: 8px;">
-            <span style="font-size: 11px; color: var(--text-secondary); white-space: nowrap; font-weight: 500;">S/D:</span>
-            <input type="date" id="endDateFilter" onchange="currentPage = 1; applyFilters()" style="padding: 10px 12px; font-size: 12px;">
+        <div class="filter-date-range-group" style="display: flex; gap: 8px; flex: 2 1 320px; align-items: center;">
+            <div class="filter-input-wrapper date-group" style="display: flex; align-items: center; gap: 6px; flex: 1;">
+                <span style="font-size: 11px; color: var(--text-secondary); white-space: nowrap; font-weight: 500;">Dari:</span>
+                <input type="date" id="startDateFilter" onchange="currentPage = 1; applyFilters()" style="padding: 10px 12px; font-size: 12px; width: 100%;">
+            </div>
+            
+            <div class="filter-input-wrapper date-group" style="display: flex; align-items: center; gap: 6px; flex: 1;">
+                <span style="font-size: 11px; color: var(--text-secondary); white-space: nowrap; font-weight: 500;">S/D:</span>
+                <input type="date" id="endDateFilter" onchange="currentPage = 1; applyFilters()" style="padding: 10px 12px; font-size: 12px; width: 100%;">
+            </div>
         </div>
         
         <button onclick="resetFilters()" class="btn-reset" title="Hapus Filter">
