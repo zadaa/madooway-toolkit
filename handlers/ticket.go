@@ -128,26 +128,7 @@ func CreateTicket(w http.ResponseWriter, r *http.Request) {
 		filePath = "/static/uploads/tickets/" + newFilename
 	}
 
-	// Call ClickUp Integration if configured and ticketLink is not manually provided
-	if ticketLink == "" {
-		var clientName string
-		client, errVal := models.GetClientByID(clientID)
-		if errVal == nil && client != nil {
-			clientName = client.Name
-		}
-		
-		clickupDesc := fmt.Sprintf(
-			"Klien: %s\nKategori: %s\nTanggal Laporan: %s\nKeterangan:\n%s",
-			clientName, category, issueDateStr, description,
-		)
-		
-		clickupURL, errCU := services.CreateTaskInClickUp(title, clickupDesc)
-		if errCU != nil {
-			log.Printf("Warning: Failed to create ClickUp task: %v", errCU)
-		} else if clickupURL != "" {
-			ticketLink = clickupURL
-		}
-	}
+	// ClickUp auto-creation is disabled on create. Users can manually trigger it from the list.
 
 	err = models.CreateTicket(clientID, title, description, userID, filePath, issueDateStr, category, ticketLink, status, finishedDateStr)
 	if err != nil {
@@ -323,4 +304,58 @@ func AssignTicket(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/tickets?success=Petugas+berhasil+ditugaskan", http.StatusSeeOther)
+}
+
+// CreateClickUpTaskForTicket handles triggering ClickUp task creation manually
+func CreateClickUpTaskForTicket(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Redirect(w, r, "/tickets", http.StatusSeeOther)
+		return
+	}
+
+	ticketIDStr := r.FormValue("ticket_id")
+	ticketID, err := strconv.Atoi(ticketIDStr)
+	if err != nil {
+		http.Redirect(w, r, "/tickets?error=ID+tiket+tidak+valid", http.StatusSeeOther)
+		return
+	}
+
+	ticket, err := models.GetTicketByID(ticketID)
+	if err != nil || ticket == nil {
+		http.Redirect(w, r, "/tickets?error=Tiket+tidak+ditemukan", http.StatusSeeOther)
+		return
+	}
+
+	if ticket.TicketLink != "" {
+		http.Redirect(w, r, "/tickets?error=Tiket+sudah+terhubung+ke+ClickUp", http.StatusSeeOther)
+		return
+	}
+
+	// Create description
+	clickupDesc := fmt.Sprintf(
+		"Klien: %s\nKategori: %s\nTanggal Laporan: %s\nKeterangan:\n%s",
+		ticket.ClientName, ticket.Category, ticket.FormattedIssueDate(), ticket.Description,
+	)
+
+	clickupURL, errCU := services.CreateTaskInClickUp(ticket.Title, clickupDesc)
+	if errCU != nil {
+		log.Printf("Error creating ClickUp task: %v", errCU)
+		http.Redirect(w, r, fmt.Sprintf("/tickets?error=Gagal+membuat+task+di+ClickUp:+%v", errCU), http.StatusSeeOther)
+		return
+	}
+
+	if clickupURL == "" {
+		http.Redirect(w, r, "/tickets?error=Gagal+membuat+task+di+ClickUp+(URL+kosong)", http.StatusSeeOther)
+		return
+	}
+
+	// Update ticket with link
+	err = models.UpdateTicketLink(ticket.ID, clickupURL)
+	if err != nil {
+		log.Printf("Error updating ticket link: %v", err)
+		http.Redirect(w, r, "/tickets?error=Gagal+menyimpan+link+ClickUp+ke+database", http.StatusSeeOther)
+		return
+	}
+
+	http.Redirect(w, r, "/tickets?success=Task+ClickUp+berhasil+dibuat", http.StatusSeeOther)
 }

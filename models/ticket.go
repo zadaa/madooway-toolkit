@@ -254,3 +254,10 @@ func AssignTicket(ticketID int, userIDs []int) error {
 
 	return tx.Commit()
 }
+
+// UpdateTicketLink updates the ClickUp task link of a ticket
+func UpdateTicketLink(ticketID int, ticketLink string) error {
+	query := "UPDATE tickets SET ticket_link = ? WHERE id = ?"
+	_, err := db.DB.Exec(query, ticketLink, ticketID)
+	return err
+}

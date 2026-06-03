@@ -164,7 +164,13 @@
 						<span>Buka Tiket</span>
 					</a>
 					{{else}}
-					<span style="color: var(--text-muted); font-size: 12px; font-style: italic;">-</span>
+					<form action="/tickets/clickup" method="POST" style="display:inline;" onsubmit="this.querySelector('button').disabled=true; this.querySelector('button').innerHTML='<i class=\'fa-solid fa-spinner fa-spin\'></i>';">
+						<input type="hidden" name="ticket_id" value="{{.ID}}">
+						<button type="submit" class="btn btn-secondary btn-sm" style="padding: 4px 8px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px; background: rgba(255, 123, 0, 0.08); border: 1px solid rgba(255, 123, 0, 0.15); color: var(--color-primary); border-radius: 6px; cursor: pointer; font-weight: 600;" title="Buat tugas di ClickUp">
+							<i class="fa-solid fa-cloud-arrow-up"></i>
+							<span>Buat Task</span>
+						</button>
+					</form>
 					{{end}}
 				</td>
 				
