@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"task-manager-go/config"
 	"task-manager-go/models"
 )
 
@@ -227,13 +228,12 @@ func SyncClients(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	remoteHost := "34.50.96.155"
-	remoteUser := "madoochatbot"
-	remotePassword := "Madoo2026!!!"
+	cfg := config.AppConfig
+	targetDB := "db_madoo_ms_presention"
 
-	count, err := models.SyncClientsFromRemote(remoteHost, remoteUser, remotePassword)
+	count, err := models.SyncClientsFromLocalDB(cfg.DBUser, cfg.DBPassword, cfg.DBHost, cfg.DBPort, targetDB)
 	if err != nil {
-		log.Printf("Error syncing clients from remote: %v", err)
+		log.Printf("Error syncing clients from local DB: %v", err)
 		errStr := strings.ReplaceAll(err.Error(), " ", "+")
 		http.Redirect(w, r, fmt.Sprintf("/clients?error=Gagal+sinkronisasi+klien:+%s", errStr), http.StatusSeeOther)
 		return

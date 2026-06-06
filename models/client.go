@@ -112,46 +112,15 @@ func GetClientStatsByProvince() ([]ProvinceStat, error) {
 	return stats, nil
 }
 
-// SyncClientsFromRemote connects to a remote MySQL database and syncs companies to our local clients table
-func SyncClientsFromRemote(remoteHost, remoteUser, remotePassword string) (int, error) {
-	// Connect to remote server without specifying database
-	dsnWithoutDB := fmt.Sprintf("%s:%s@tcp(%s:3306)/?parseTime=true", remoteUser, remotePassword, remoteHost)
-	remoteDB, err := sql.Open("mysql", dsnWithoutDB)
-	if err != nil {
-		return 0, err
-	}
-	defer remoteDB.Close()
-
-	// Show databases to find the one containing "companies" table
-	rows, err := remoteDB.Query("SHOW DATABASES")
-	if err != nil {
-		return 0, err
-	}
-	defer rows.Close()
-
-	var targetDB string
-	for rows.Next() {
-		var dbName string
-		if err := rows.Scan(&dbName); err == nil {
-			if dbName == "information_schema" || dbName == "mysql" || dbName == "performance_schema" || dbName == "sys" {
-				continue
-			}
-			var tableExists int
-			checkQuery := fmt.Sprintf("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = '%s' AND table_name = 'companies'", dbName)
-			err2 := remoteDB.QueryRow(checkQuery).Scan(&tableExists)
-			if err2 == nil && tableExists > 0 {
-				targetDB = dbName
-				break
-			}
-		}
+// SyncClientsFromLocalDB connects to a local database and syncs companies to our local clients table
+func SyncClientsFromLocalDB(dbUser, dbPassword, dbHost, dbPort, targetDB string) (int, error) {
+	var dsn string
+	if strings.HasPrefix(dbHost, "/") {
+		dsn = fmt.Sprintf("%s:%s@unix(%s)/%s?parseTime=true", dbUser, dbPassword, dbHost, targetDB)
+	} else {
+		dsn = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true", dbUser, dbPassword, dbHost, dbPort, targetDB)
 	}
 
-	if targetDB == "" {
-		return 0, errors.New("remote table 'companies' not found in any database")
-	}
-
-	// Connect to the specific remote database
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:3306)/%s?parseTime=true", remoteUser, remotePassword, remoteHost, targetDB)
 	dbRemote, err := sql.Open("mysql", dsn)
 	if err != nil {
 		return 0, err
