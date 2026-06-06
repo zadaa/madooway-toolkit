@@ -76,7 +76,7 @@
                 <td>
                     <div style="display: flex; align-items: center; gap: 12px;">
                         {{if .Logo}}
-                        <img src="{{.Logo}}" alt="{{.Name}} Logo" style="width: 38px; height: 38px; border-radius: 8px; object-fit: cover; border: 1px solid var(--border-color); background: rgba(255,255,255,0.03);">
+                        <img src="{{.Logo | safeURL}}" alt="{{.Name}} Logo" style="width: 38px; height: 38px; border-radius: 8px; object-fit: cover; border: 1px solid var(--border-color); background: rgba(255,255,255,0.03);">
                         {{else}}
                         <div style="width: 38px; height: 38px; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(255,255,255,0.01); display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 14px;">
                             <i class="fa-solid fa-image"></i>

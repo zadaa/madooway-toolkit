@@ -44,6 +44,9 @@ func RenderTemplate(w http.ResponseWriter, r *http.Request, templateName string,
 			}
 			return string([]rune(s)[0])
 		},
+		"safeURL": func(s string) template.URL {
+			return template.URL(s)
+		},
 	})
 	
 	tmpl, err := tmpl.ParseFiles(files...)
