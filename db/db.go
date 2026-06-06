@@ -316,11 +316,17 @@ func runMigrations() {
 	err = DB.QueryRow(checkLogoQuery).Scan(&logoCount)
 	if err == nil && logoCount == 0 {
 		log.Println("Migrating clients table: adding logo column")
-		_, err = DB.Exec("ALTER TABLE clients ADD COLUMN logo VARCHAR(255) NULL")
+		_, err = DB.Exec("ALTER TABLE clients ADD COLUMN logo MEDIUMTEXT NULL")
 		if err != nil {
 			log.Fatalf("Error adding logo column to clients table: %v", err)
 		}
 		log.Println("Database migration completed: logo column added to clients table")
+	} else {
+		// Ensure logo column is MEDIUMTEXT to support persistent Base64 images in serverless/stateless container environment
+		_, err = DB.Exec("ALTER TABLE clients MODIFY COLUMN logo MEDIUMTEXT NULL")
+		if err != nil {
+			log.Printf("Warning: failed to modify logo column to MEDIUMTEXT: %v", err)
+		}
 	}
 
 	// Ensure uploads directory exists for logos
@@ -544,4 +550,49 @@ func runMigrations() {
 	_, _ = DB.Exec("UPDATE tasks SET category = 'Lain-lain' WHERE category = 'Undefined'")
 	_, _ = DB.Exec("UPDATE tickets SET category = 'Lain-lain' WHERE category = 'Undefined'")
 	log.Println("Database migration completed: updated 'Undefined' categories to 'Lain-lain'")
+
+	// Create Payments table
+	paymentsTableQuery := `
+	CREATE TABLE IF NOT EXISTS payments (
+		id INT AUTO_INCREMENT PRIMARY KEY,
+		client_id INT NOT NULL,
+		order_id VARCHAR(100) UNIQUE NOT NULL,
+		amount DECIMAL(12, 2) NOT NULL,
+		package_name VARCHAR(100) NOT NULL,
+		status VARCHAR(50) NOT NULL DEFAULT 'Pending',
+		payment_type VARCHAR(50) NOT NULL DEFAULT '',
+		snap_token VARCHAR(255) NULL,
+		snap_url VARCHAR(255) NULL,
+		tahap VARCHAR(100) NULL,
+		dpp DECIMAL(12, 2) NULL,
+		ppn DECIMAL(12, 2) NULL,
+		pph DECIMAL(12, 2) NULL,
+		tanggal_invoice DATETIME NULL,
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+		FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
+	) ENGINE=InnoDB;`
+
+	_, err = DB.Exec(paymentsTableQuery)
+	if err != nil {
+		log.Fatalf("Error creating payments table: %v", err)
+	}
+	log.Println("Table 'payments' verified/created")
+
+	// Check if tahap column exists in payments table (for existing databases)
+	var paymentsSyncCount int
+	checkPaymentsQuery := `SELECT COUNT(*) FROM information_schema.COLUMNS 
+	                      WHERE TABLE_SCHEMA = DATABASE() 
+	                      AND TABLE_NAME = 'payments' 
+	                      AND COLUMN_NAME = 'tahap'`
+	err = DB.QueryRow(checkPaymentsQuery).Scan(&paymentsSyncCount)
+	if err == nil && paymentsSyncCount == 0 {
+		log.Println("Migrating payments table: adding columns for sync")
+		_, _ = DB.Exec("ALTER TABLE payments ADD COLUMN tahap VARCHAR(100) NULL")
+		_, _ = DB.Exec("ALTER TABLE payments ADD COLUMN dpp DECIMAL(12, 2) NULL")
+		_, _ = DB.Exec("ALTER TABLE payments ADD COLUMN ppn DECIMAL(12, 2) NULL")
+		_, _ = DB.Exec("ALTER TABLE payments ADD COLUMN pph DECIMAL(12, 2) NULL")
+		_, _ = DB.Exec("ALTER TABLE payments ADD COLUMN tanggal_invoice DATETIME NULL")
+		log.Println("Database migration completed: sync columns added to payments table")
+	}
 }

@@ -117,6 +117,7 @@ func GetPerformanceByID(id, userID int) (*AppPerformance, error) {
 		}
 		return nil, err
 	}
+	ap.ClientLogo = SanitizeLogo(ap.ClientLogo)
 	return &ap, nil
 }
 
@@ -139,6 +140,7 @@ func GetAllPerformancesByUserID(userID int) ([]AppPerformance, error) {
 		if err != nil {
 			return nil, err
 		}
+		ap.ClientLogo = SanitizeLogo(ap.ClientLogo)
 		list = append(list, ap)
 	}
 	return list, nil

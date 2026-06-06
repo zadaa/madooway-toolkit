@@ -83,6 +83,18 @@ func main() {
 	mux.HandleFunc("POST /leads/delete", middleware.AuthRequired(handlers.DeleteLead))
 	mux.HandleFunc("POST /leads/history", middleware.AuthRequired(handlers.UpdateLeadHistory))
 
+	// Payment Gateway Routes
+	mux.HandleFunc("GET /payments", middleware.AuthRequired(handlers.ListPayments))
+	mux.HandleFunc("GET /payments/dashboard", middleware.AuthRequired(handlers.ShowPaymentsDashboard))
+	mux.HandleFunc("POST /payments/create", middleware.AuthRequired(handlers.CreatePayment))
+	mux.HandleFunc("POST /payments/parse-pdf", middleware.AuthRequired(handlers.ParseInvoicePDF))
+	mux.HandleFunc("POST /payments/webhook", handlers.MidtransWebhook) // Webhook callback by Midtrans
+	mux.HandleFunc("POST /payments/sync", middleware.AuthRequired(handlers.SyncPayments))
+	mux.HandleFunc("POST /payments/get-token", middleware.AuthRequired(handlers.GetPaymentToken))
+	mux.HandleFunc("POST /payments/refresh", middleware.AuthRequired(handlers.RefreshPaymentStatus))
+	mux.HandleFunc("POST /payments/delete", middleware.AuthRequired(handlers.DeletePayment))
+
+
 	// Root Redirect Handler
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {

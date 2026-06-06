@@ -1,15 +1,14 @@
 package handlers
 
 import (
+	"encoding/base64"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
-	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
-	"time"
 
 	"task-manager-go/models"
 )
@@ -66,24 +65,29 @@ func CreateClient(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		newFilename := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext)
-		savePath := filepath.Join("static", "uploads", "logos", newFilename)
-		
-		dst, err := os.Create(savePath)
+		fileBytes, err := io.ReadAll(file)
 		if err != nil {
-			log.Printf("Error creating logo file: %v", err)
-			http.Redirect(w, r, "/clients?error=Gagal+menyimpan+file+logo", http.StatusSeeOther)
+			log.Printf("Error reading logo file: %v", err)
+			http.Redirect(w, r, "/clients?error=Gagal+membaca+file+logo", http.StatusSeeOther)
 			return
 		}
-		defer dst.Close()
 
-		_, err = io.Copy(dst, file)
-		if err != nil {
-			log.Printf("Error copying logo content: %v", err)
-			http.Redirect(w, r, "/clients?error=Gagal+menyimpan+file+logo", http.StatusSeeOther)
-			return
+		mimeType := "image/png"
+		switch ext {
+		case ".png":
+			mimeType = "image/png"
+		case ".jpg", ".jpeg":
+			mimeType = "image/jpeg"
+		case ".gif":
+			mimeType = "image/gif"
+		case ".svg":
+			mimeType = "image/svg+xml"
+		case ".webp":
+			mimeType = "image/webp"
 		}
-		logoPath = "/static/uploads/logos/" + newFilename
+
+		encoded := base64.StdEncoding.EncodeToString(fileBytes)
+		logoPath = fmt.Sprintf("data:%s;base64,%s", mimeType, encoded)
 	}
 
 	province := strings.TrimSpace(r.FormValue("province"))
@@ -152,24 +156,29 @@ func UpdateClient(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		newFilename := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext)
-		savePath := filepath.Join("static", "uploads", "logos", newFilename)
-		
-		dst, err := os.Create(savePath)
+		fileBytes, err := io.ReadAll(file)
 		if err != nil {
-			log.Printf("Error creating logo file: %v", err)
-			http.Redirect(w, r, "/clients?error=Gagal+menyimpan+file+logo", http.StatusSeeOther)
+			log.Printf("Error reading logo file: %v", err)
+			http.Redirect(w, r, "/clients?error=Gagal+membaca+file+logo", http.StatusSeeOther)
 			return
 		}
-		defer dst.Close()
 
-		_, err = io.Copy(dst, file)
-		if err != nil {
-			log.Printf("Error copying logo content: %v", err)
-			http.Redirect(w, r, "/clients?error=Gagal+menyimpan+file+logo", http.StatusSeeOther)
-			return
+		mimeType := "image/png"
+		switch ext {
+		case ".png":
+			mimeType = "image/png"
+		case ".jpg", ".jpeg":
+			mimeType = "image/jpeg"
+		case ".gif":
+			mimeType = "image/gif"
+		case ".svg":
+			mimeType = "image/svg+xml"
+		case ".webp":
+			mimeType = "image/webp"
 		}
-		logoPath = "/static/uploads/logos/" + newFilename
+
+		encoded := base64.StdEncoding.EncodeToString(fileBytes)
+		logoPath = fmt.Sprintf("data:%s;base64,%s", mimeType, encoded)
 	}
 
 	province := strings.TrimSpace(r.FormValue("province"))

@@ -47,6 +47,10 @@
                 <i class="fa-solid fa-chart-line"></i>
                 <span>Dashboard User</span>
             </a>
+            <a href="/payments/dashboard" class="menu-item {{if eq .ActiveTab "payments_dashboard"}}active{{end}}">
+                <i class="fa-solid fa-wallet"></i>
+                <span>Dashboard Pembayaran</span>
+            </a>
             <a href="/leaderboard" class="menu-item {{if eq .ActiveTab "leaderboard"}}active{{end}}">
                 <i class="fa-solid fa-trophy"></i>
                 <span>Leaderboard</span>
@@ -86,6 +90,10 @@
                 <a href="/performance" class="menu-item sub-item {{if eq .ActiveTab "performance"}}active{{end}}">
                     <i class="fa-solid fa-gauge-high"></i>
                     <span>Peforma App</span>
+                </a>
+                <a href="/payments" class="menu-item sub-item {{if eq .ActiveTab "payments"}}active{{end}}">
+                    <i class="fa-solid fa-credit-card"></i>
+                    <span>Pembayaran</span>
                 </a>
             </div>
         </nav>

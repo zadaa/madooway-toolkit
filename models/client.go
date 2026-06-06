@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"os"
+	"strings"
 	"time"
 
 	"task-manager-go/db"
@@ -57,6 +59,7 @@ func GetClientByID(clientID int) (*Client, error) {
 		}
 		return nil, err
 	}
+	c.Logo = SanitizeLogo(c.Logo)
 	return &c, nil
 }
 
@@ -76,6 +79,7 @@ func GetAllClients() ([]Client, error) {
 		if err != nil {
 			return nil, err
 		}
+		c.Logo = SanitizeLogo(c.Logo)
 		clients = append(clients, c)
 	}
 	return clients, nil
@@ -218,6 +222,18 @@ func SyncClientsFromRemote(remoteHost, remoteUser, remotePassword string) (int, 
 		}
 
 		if existingID > 0 {
+			// Fetch the existing logo to prevent overwriting it with blank if remote logo is empty
+			var existingLogo string
+			_ = db.DB.QueryRow("SELECT COALESCE(logo, '') FROM clients WHERE id = ?", existingID).Scan(&existingLogo)
+			if existingLogo != "" {
+				if strings.HasPrefix(existingLogo, "data:") && !strings.HasPrefix(logo, "data:") {
+					// Keep local Base64 logo instead of remote path or empty logo
+					logo = existingLogo
+				} else if logo == "" {
+					logo = existingLogo
+				}
+			}
+
 			query := `UPDATE clients SET short_name = ?, email = ?, phone = ?, pic_name = ?, price_package = ?, logo = ?, province = ? WHERE id = ?`
 			_, err = db.DB.Exec(query, shortName, email, phone, picName, pricePackage, logo, province, existingID)
 		} else {
@@ -232,4 +248,27 @@ func SyncClientsFromRemote(remoteHost, remoteUser, remotePassword string) (int, 
 	}
 
 	return syncCount, nil
+}
+
+// SanitizeLogo validates a logo path/Base64 string.
+// If it's a file path starting with "/" or "static/", it checks if the file exists on the local disk.
+// If the file does not exist, it returns an empty string to fall back to default placeholders.
+// If the logo is a Base64 string, it returns it directly.
+func SanitizeLogo(logo string) string {
+	if logo == "" {
+		return ""
+	}
+	if strings.HasPrefix(logo, "data:") {
+		return logo
+	}
+	// If it is a local path, check if it exists on disk
+	localPath := logo
+	if strings.HasPrefix(logo, "/") {
+		localPath = strings.TrimPrefix(logo, "/")
+	}
+	if _, err := os.Stat(localPath); err != nil {
+		// File does not exist, return empty string
+		return ""
+	}
+	return logo
 }

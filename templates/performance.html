@@ -672,6 +672,9 @@
     // ============ PDF Report Generation ============
 
     function loadImageAsDataUrl(src) {
+        if (src.startsWith('data:')) {
+            return Promise.resolve(src);
+        }
         return new Promise(function(resolve, reject) {
             var img = new Image();
             img.crossOrigin = 'anonymous';
