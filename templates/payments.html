@@ -1,0 +1,761 @@
+{{define "content"}}
+<!-- Select2 CSS & JS Dependencies -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<style>
+    /* Select2 Dark/Light Mode Theme Integration */
+    .select2-container--default .select2-selection--single {
+        background-color: var(--bg-input) !important;
+        border: 1px solid var(--border-color) !important;
+        border-radius: 8px !important;
+        height: 40px !important;
+        display: flex !important;
+        align-items: center !important;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        color: var(--text-primary) !important;
+        font-size: 13px !important;
+        padding-left: 12px !important;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 38px !important;
+        right: 8px !important;
+    }
+    .select2-dropdown {
+        background-color: var(--bg-card) !important;
+        border: 1px solid var(--border-color) !important;
+        border-radius: 8px !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+        z-index: 999999 !important;
+    }
+    .select2-container--default .select2-search--dropdown .select2-search__field {
+        background-color: var(--bg-input) !important;
+        border: 1px solid var(--border-color) !important;
+        color: var(--text-primary) !important;
+        border-radius: 6px !important;
+        padding: 6px 10px !important;
+    }
+    .select2-container--default .select2-results__option {
+        color: var(--text-secondary) !important;
+        font-size: 13px !important;
+        padding: 8px 12px !important;
+    }
+    .select2-container--default .select2-results__option--highlighted[aria-selected] {
+        background-color: var(--color-primary) !important;
+        color: #ffffff !important;
+    }
+    .select2-container--default .select2-results__option[aria-selected=true] {
+        background-color: rgba(255, 255, 255, 0.05) !important;
+        color: var(--text-primary) !important;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__placeholder {
+        color: var(--text-muted) !important;
+    }
+</style>
+<div class="tasks-page-header">
+    <div>
+        <p class="section-desc">Inisiasi tagihan pembayaran klien dan pantau status transaksi real-time dari Midtrans.</p>
+    </div>
+    
+    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+        <!-- Form Sinkronisasi Tagihan (Plan B) -->
+        <form action="/payments/sync" method="POST" style="display: inline-flex; gap: 8px; align-items: center; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); padding: 5px 10px; border-radius: 8px; margin: 0;">
+            <span style="font-size: 12px; color: var(--text-muted); font-weight: 500; white-space: nowrap;">Bulan:</span>
+            <input type="month" name="month" id="syncMonthInput" required style="padding: 6px 10px; font-size: 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-primary); outline: none; width: 140px;">
+            <button type="submit" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.15); color: #60a5fa; cursor: pointer;">
+                <i class="fa-solid fa-arrows-rotate"></i>
+                <span>Sinkronkan Tagihan</span>
+            </button>
+        </form>
+
+        <button onclick="openCreatePaymentModal()" class="btn btn-primary" id="btnInitiatePayment" style="padding: 10px 16px; font-size: 13px; border-radius: 8px;">
+            <i class="fa-solid fa-plus"></i>
+            <span>Buat Tagihan</span>
+        </button>
+    </div>
+</div>
+
+<!-- Stats Counters -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;" class="animate-fade-in">
+    <div style="background: var(--bg-card); border: 1px solid var(--border-color); padding: 15px; border-radius: 12px; display: flex; align-items: center; gap: 15px;">
+        <div style="width: 45px; height: 45px; border-radius: 10px; background: rgba(58, 125, 68, 0.15); display: flex; align-items: center; justify-content: center; color: #4ade80; font-size: 20px;">
+            <i class="fa-solid fa-circle-check"></i>
+        </div>
+        <div>
+            <div style="font-size: 12px; color: var(--text-muted); font-weight: 500;">Berhasil (Settled)</div>
+            <div style="font-size: 20px; font-weight: 700; color: var(--text-primary);" id="statSuccess">0</div>
+        </div>
+    </div>
+    <div style="background: var(--bg-card); border: 1px solid var(--border-color); padding: 15px; border-radius: 12px; display: flex; align-items: center; gap: 15px;">
+        <div style="width: 45px; height: 45px; border-radius: 10px; background: rgba(229, 152, 36, 0.15); display: flex; align-items: center; justify-content: center; color: #f59e0b; font-size: 20px;">
+            <i class="fa-solid fa-clock"></i>
+        </div>
+        <div>
+            <div style="font-size: 12px; color: var(--text-muted); font-weight: 500;">Menunggu Pembayaran</div>
+            <div style="font-size: 20px; font-weight: 700; color: var(--text-primary);" id="statPending">0</div>
+        </div>
+    </div>
+    <div style="background: var(--bg-card); border: 1px solid var(--border-color); padding: 15px; border-radius: 12px; display: flex; align-items: center; gap: 15px;">
+        <div style="width: 45px; height: 45px; border-radius: 10px; background: rgba(220, 38, 38, 0.15); display: flex; align-items: center; justify-content: center; color: #f87171; font-size: 20px;">
+            <i class="fa-solid fa-circle-xmark"></i>
+        </div>
+        <div>
+            <div style="font-size: 12px; color: var(--text-muted); font-weight: 500;">Gagal / Kadaluarsa</div>
+            <div style="font-size: 20px; font-weight: 700; color: var(--text-primary);" id="statFailed">0</div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Section -->
+<div class="filter-row-container animate-fade-in" style="margin-bottom: 20px;">
+    <div class="filter-grid" style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center; width: 100%;">
+        <div class="filter-input-wrapper search-group" style="flex: 2 1 300px; position: relative;">
+            <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted);"></i>
+            <input type="text" id="searchFilter" placeholder="Cari Kode Invoice atau nama klien..." oninput="applyFilters()" style="width: 100%; padding: 10px 12px 10px 40px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-primary); font-size: 13px;">
+        </div>
+        
+        <div style="flex: 1 1 200px;">
+            <select id="statusFilter" onchange="applyFilters()" style="width: 100%; padding: 10px 12px; font-size: 13px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-primary); cursor: pointer;">
+                <option value="">Semua Status</option>
+                <option value="Success">Success</option>
+                <option value="Pending">Pending</option>
+                <option value="Expired">Expired</option>
+                <option value="Failed">Failed</option>
+            </select>
+        </div>
+        
+        <button onclick="resetFilters()" class="btn-reset" title="Hapus Filter">
+            <i class="fa-solid fa-rotate-left"></i>
+        </button>
+    </div>
+</div>
+
+<!-- Table Container -->
+{{if not .Data.Payments}}
+<div class="empty-state animate-fade-in" id="emptyStateNoData">
+    <i class="fa-solid fa-credit-card empty-icon"></i>
+    <h3>Belum Ada Tagihan</h3>
+    <p>Belum ada tagihan pembayaran yang diinisiasi untuk klien Anda.</p>
+    <button onclick="openCreatePaymentModal()" class="btn btn-primary btn-sm">Buat Tagihan Pertama</button>
+</div>
+{{else}}
+<div class="table-responsive" id="tableResponsiveContainer">
+    <table class="premium-table" id="paymentsTable">
+        <thead>
+            <tr>
+                <th>No. Invoice</th>
+                <th>Klien / Perusahaan</th>
+                <th>Paket</th>
+                <th>Nominal</th>
+                <th>Status</th>
+                <th>Metode Bayar</th>
+                <th>Tanggal Tagihan</th>
+                <th style="width: 130px; text-align: center;">Aksi</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{range .Data.Payments}}
+            <tr data-order-id="{{.OrderID}}"
+                data-client-name="{{.ClientName}}"
+                data-client-phone="{{.ClientPhone}}"
+                data-package="{{.PackageName}}"
+                data-status="{{.Status}}"
+                data-amount="{{printf "%.0f" .Amount}}"
+                data-url="{{.SnapURL}}"
+                data-token="{{.SnapToken}}">
+                
+                <td style="font-weight: 600; color: var(--color-primary);">
+                    {{.OrderID}}
+                </td>
+                
+                <td>
+                    <div style="font-weight: 600; color: var(--text-primary);">{{.ClientName}}</div>
+                </td>
+                
+                <td>
+                    <span class="badge badge-category" style="background: rgba(155, 93, 229, 0.12); color: var(--color-purple); border: 1px solid rgba(155, 93, 229, 0.15); font-size: 11px;">
+                        {{.PackageName}}
+                    </span>
+                </td>
+                
+                <td style="font-weight: 600; color: var(--text-primary);" class="price-format">
+                    {{printf "%.0f" .Amount}}
+                </td>
+                
+                <td>
+                    {{if eq .Status "Success"}}
+                    <span class="badge" style="background: rgba(74, 222, 128, 0.15); color: #4ade80; border: 1px solid rgba(74, 222, 128, 0.25);">Success</span>
+                    {{else if eq .Status "Pending"}}
+                    <span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.25);">Pending</span>
+                    {{else if eq .Status "Expired"}}
+                    <span class="badge" style="background: rgba(156, 163, 175, 0.15); color: #9ca3af; border: 1px solid rgba(156, 163, 175, 0.25);">Expired</span>
+                    {{else}}
+                    <span class="badge" style="background: rgba(248, 113, 113, 0.15); color: #f87171; border: 1px solid rgba(248, 113, 113, 0.25);">{{.Status}}</span>
+                    {{end}}
+                </td>
+                
+                <td>
+                    {{if .PaymentType}}
+                    <span style="font-size: 13px; font-weight: 500; color: var(--text-secondary);">
+                        <i class="fa-solid fa-money-bill-transfer" style="margin-right: 4px; color: var(--text-muted);"></i>
+                        {{.PaymentType}}
+                    </span>
+                    {{else}}
+                    <span style="font-size: 13px; color: var(--text-muted); font-style: italic;">Belum memilih</span>
+                    {{end}}
+                </td>
+                
+                <td style="font-size: 12px; color: var(--text-muted);" class="date-format">
+                    {{.CreatedAt.Format "02 Jan 2006 15:04"}}
+                </td>
+                
+                <td style="text-align: center; display: flex; gap: 6px; justify-content: center; align-items: center;">
+                    <button class="btn btn-secondary btn-sm" 
+                            onclick="openShareModal(this)"
+                            style="padding: 5px 12px; font-size: 12px; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; background: rgba(249, 115, 22, 0.12); border: 1px solid rgba(249, 115, 22, 0.25); color: #fb923c; cursor: pointer;">
+                        <i class="fa-solid fa-credit-card"></i> Bayar
+                    </button>
+                    {{if ne .Status "Success"}}
+                    <button class="btn btn-secondary btn-sm btn-refresh-status" 
+                            onclick="refreshStatus(this, '{{.OrderID}}')"
+                            title="Update Status dari Midtrans"
+                            style="padding: 5px 8px; font-size: 12px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); color: #60a5fa; cursor: pointer; height: 29px; width: 29px;">
+                        <i class="fa-solid fa-arrows-rotate"></i>
+                    </button>
+                    {{end}}
+                    <button class="btn btn-secondary btn-sm" 
+                            onclick="confirmDeletePayment('{{.OrderID}}')"
+                            title="Hapus Tagihan"
+                            style="padding: 5px 8px; font-size: 12px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: #ef4444; cursor: pointer; height: 29px; width: 29px;">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
+</div>
+
+<!-- Empty State Filter Match -->
+<div class="empty-state animate-fade-in" id="tableEmptyState" style="display: none;">
+    <i class="fa-solid fa-magnifying-glass empty-icon"></i>
+    <h3>Tidak Ada Transaksi Ditemukan</h3>
+    <p>Tidak ada transaksi yang cocok dengan kriteria pencarian Anda.</p>
+    <button onclick="resetFilters()" class="btn btn-secondary btn-sm">Reset Pencarian</button>
+</div>
+{{end}}
+
+<!-- Initiate Payment Modal -->
+<div id="paymentModal" class="modal">
+    <div class="modal-content animate-slide-in" style="max-width: 500px;">
+        <div class="modal-header">
+            <h3>Buat Tagihan Pembayaran Baru</h3>
+            <span class="close-modal" onclick="closeCreatePaymentModal()">&times;</span>
+        </div>
+        <form action="/payments/create" method="POST">
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label for="paymentClientID">Pilih Klien</label>
+                <select id="paymentClientID" name="client_id" required style="width: 100%; padding: 10px 12px; font-size: 13px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-primary); cursor: pointer;" onchange="onClientSelectChange()">
+                    <option value="" disabled selected>-- Pilih Klien / Perusahaan --</option>
+                    {{range .Data.Clients}}
+                    <option value="{{.ID}}" data-name="{{.Name}}" data-package="{{.PricePackage}}">{{.Name}} ({{.PricePackage}})</option>
+                    {{end}}
+                </select>
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label for="packageName">Nama Paket Layanan</label>
+                <input type="text" id="packageName" name="package_name" required placeholder="Contoh: Gold Plan, Layanan Bulanan" style="width: 100%; padding: 10px 12px; font-size: 13px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-primary);">
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label for="amount">Nominal Tagihan (Rupiah)</label>
+                <input type="number" id="amount" name="amount" min="1000" required placeholder="Contoh: 1000000" style="width: 100%; padding: 10px 12px; font-size: 13px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-primary);">
+                <small style="color: var(--text-muted); display: block; margin-top: 5px; font-size: 11px;">Minimum nominal pembayaran Midtrans adalah Rp 1.000</small>
+            </div>
+
+            <div class="modal-footer" style="padding-top: 10px;">
+                <button type="button" class="btn btn-secondary" onclick="closeCreatePaymentModal()">Batal</button>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fa-solid fa-paper-plane" style="margin-right: 4px;"></i> Kirim Tagihan
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Share & QRIS Modal -->
+<div id="shareModal" class="modal">
+    <div class="modal-content animate-slide-in" style="max-width: 550px; background: var(--bg-card); border: 1px solid var(--border-color); padding: 0; overflow: hidden; border-radius: 16px;">
+        <div class="modal-header" style="padding: 20px 24px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.01);">
+            <h3 style="margin: 0; font-family: 'Outfit', sans-serif; font-size: 18px; font-weight: 600; color: var(--text-primary);">
+                <i class="fa-solid fa-qrcode" style="color: var(--color-primary); margin-right: 8px;"></i> Rincian & Bagikan Tagihan
+            </h3>
+            <span class="close-modal" onclick="closeShareModal()" style="font-size: 24px; cursor: pointer; color: var(--text-muted); transition: color 0.2s;" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-muted)'">&times;</span>
+        </div>
+        
+        <div style="padding: 24px; display: flex; flex-direction: column; gap: 20px;">
+            <!-- Invoice Info Grid -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 15px; border-radius: 10px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); font-size: 13px;">
+                <div>
+                    <div style="color: var(--text-muted); margin-bottom: 4px;">No. Invoice</div>
+                    <div style="font-weight: 600; color: var(--text-primary);" id="shareInvoiceId">-</div>
+                </div>
+                <div>
+                    <div style="color: var(--text-muted); margin-bottom: 4px;">Klien</div>
+                    <div style="font-weight: 600; color: var(--text-primary);" id="shareClientName">-</div>
+                </div>
+                <div>
+                    <div style="color: var(--text-muted); margin-bottom: 4px;">Paket Layanan</div>
+                    <div style="font-weight: 600; color: var(--text-primary);" id="sharePackage">-</div>
+                </div>
+                <div>
+                    <div style="color: var(--text-muted); margin-bottom: 4px;">Total Tagihan</div>
+                    <div style="font-weight: 700; color: var(--color-primary);" id="shareAmount">-</div>
+                </div>
+            </div>
+
+            <!-- Tab Content (QRIS & Info) -->
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 20px; text-align: center;">
+                <!-- QR Code Display -->
+                <div style="background: white; padding: 16px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 4px 20px rgba(0,0,0,0.15); border: 1px solid #e2e8f0;">
+                    <img id="shareQRCode" src="" alt="QRIS Pembayaran" style="width: 200px; height: 200px; object-fit: contain;">
+                </div>
+                <div style="font-size: 12px; color: var(--text-muted); max-width: 350px;">
+                    Scan kode QR di atas menggunakan kamera ponsel atau aplikasi e-wallet (GoPay, OVO, ShopeePay) untuk membuka halaman pembayaran Midtrans secara instan.
+                </div>
+            </div>
+
+            <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 5px 0;">
+
+            <!-- Payment Links and Actions -->
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                <label style="font-size: 13px; font-weight: 500; color: var(--text-primary);">Link Pembayaran (Midtrans Snap)</label>
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" id="sharePaymentLink" readonly style="flex: 1; padding: 10px 12px; font-size: 13px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-secondary);" onclick="this.select()">
+                    <button class="btn btn-secondary" onclick="copyPaymentLink()" style="padding: 10px 15px; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; border-radius: 8px; font-weight: 500;">
+                        <i class="fa-solid fa-copy"></i> Copy
+                    </button>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 5px;">
+                    <!-- WhatsApp Share Button -->
+                    <a id="shareWAButton" href="#" target="_blank" class="btn" style="background: #25D366; color: white; border: none; padding: 12px; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: 8px; text-decoration: none; font-weight: 500; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
+                        <i class="fa-brands fa-whatsapp" style="font-size: 16px;"></i> Kirim WA
+                    </a>
+
+                    <!-- Direct Pay Button (Only if Pending) -->
+                    <button id="sharePayDirectButton" class="btn btn-primary" style="padding: 12px; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: 8px;">
+                        <i class="fa-solid fa-wallet"></i> Bayar Sekarang
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Load Midtrans Snap.js Client SDK -->
+<script type="text/javascript" src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="{{.Data.ClientKey}}"></script>
+
+<script>
+    // Format Numbers to Local Currency Rupiah
+    function formatRupiahVal(val) {
+        return new Intl.NumberFormat('id-ID', {
+            style: 'currency',
+            currency: 'IDR',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        }).format(val);
+    }
+
+    function formatRupiah() {
+        const prices = document.querySelectorAll('.price-format');
+        prices.forEach(el => {
+            const val = parseFloat(el.textContent.trim());
+            if (!isNaN(val)) {
+                el.textContent = formatRupiahVal(val);
+            }
+        });
+    }
+
+    function openCreatePaymentModal() {
+        const modal = document.getElementById('paymentModal');
+        if (modal) {
+            modal.style.display = "flex";
+        }
+    }
+
+    function closeCreatePaymentModal() {
+        const modal = document.getElementById('paymentModal');
+        if (modal) {
+            modal.style.display = "none";
+        }
+    }
+
+    // Auto populate Package Name when Client is selected
+    function onClientSelectChange() {
+        const select = document.getElementById('paymentClientID');
+        const selectedOpt = select.options[select.selectedIndex];
+        const packageNameInput = document.getElementById('packageName');
+        if (selectedOpt && packageNameInput) {
+            const rawPkg = selectedOpt.getAttribute('data-package') || "";
+            packageNameInput.value = rawPkg;
+        }
+    }
+
+    // Share & QRIS Modal Logic
+    function openShareModal(btn) {
+        const row = btn.closest('tr');
+        if (!row) return;
+
+        const orderId = row.getAttribute('data-order-id');
+        const clientName = row.getAttribute('data-client-name');
+        const clientPhone = row.getAttribute('data-client-phone') || "";
+        const packageName = row.getAttribute('data-package');
+        const status = row.getAttribute('data-status');
+        const amount = parseFloat(row.getAttribute('data-amount'));
+        let snapURL = row.getAttribute('data-url') || "";
+        let snapToken = row.getAttribute('data-token') || "";
+
+        // Populate Modal Fields
+        document.getElementById('shareInvoiceId').textContent = orderId;
+        document.getElementById('shareClientName').textContent = clientName;
+        document.getElementById('sharePackage').textContent = packageName;
+        document.getElementById('shareAmount').textContent = formatRupiahVal(amount);
+
+        const qrImage = document.getElementById('shareQRCode');
+        const paymentLinkInput = document.getElementById('sharePaymentLink');
+        const waButton = document.getElementById('shareWAButton');
+        const payDirectButton = document.getElementById('sharePayDirectButton');
+
+        function setWAUrl(url) {
+            const formattedAmount = formatRupiahVal(amount);
+            const waMessage = `Halo *${clientName}*,\n\nBerikut adalah tagihan pembayaran Anda untuk *${packageName}* sebesar *${formattedAmount}* dengan No. Invoice *${orderId}*.\n\nSilakan selesaikan pembayaran melalui tautan berikut:\n${url}\n\nTerima kasih.`;
+            
+            let cleanPhone = clientPhone.replace(/\D/g, ''); // numbers only
+            if (cleanPhone.startsWith('0')) {
+                cleanPhone = '62' + cleanPhone.substring(1);
+            }
+            if (cleanPhone) {
+                waButton.href = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(waMessage)}`;
+            } else {
+                waButton.href = `https://api.whatsapp.com/send?text=${encodeURIComponent(waMessage)}`;
+            }
+        }
+
+        // Open Modal
+        document.getElementById('shareModal').style.display = 'flex';
+
+        if (snapToken !== "" && snapURL !== "") {
+            paymentLinkInput.value = snapURL;
+            qrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(snapURL)}`;
+            setWAUrl(snapURL);
+
+            waButton.style.opacity = "1";
+            waButton.style.pointerEvents = "auto";
+
+            if (status === 'Pending') {
+                payDirectButton.style.display = 'inline-flex';
+                payDirectButton.onclick = function() {
+                    closeShareModal();
+                    payNow(snapToken, orderId);
+                };
+            } else {
+                payDirectButton.style.display = 'none';
+            }
+        } else {
+            // Show Loader State
+            paymentLinkInput.value = "Menghubungi Midtrans untuk membuat link pembayaran...";
+            qrImage.src = "data:image/svg+xml;charset=utf-8,%3Csvg xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg' width%3D'200' height%3D'200'%3E%3Crect width%3D'100%25' height%3D'100%25' fill%3D'%231a1a2e'%2F%3E%3Ctext x%3D'50%25' y%3D'50%25' dominant-baseline%3D'middle' text-anchor%3D'middle' font-family%3D'Outfit, sans-serif' font-size%3D'12' fill%3D'%23888'%3EGenerating QR Code...%3C%2Ftext%3E%3C%2Fsvg%3E";
+            waButton.href = "#";
+            waButton.style.opacity = "0.5";
+            waButton.style.pointerEvents = "none";
+            payDirectButton.style.display = 'none';
+
+            // Fetch snap token and url from our backend on-the-fly
+            fetch('/payments/get-token?order_id=' + encodeURIComponent(orderId), {
+                method: 'POST'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Gagal mendapatkan token pembayaran dari Midtrans.');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success && data.snap_token) {
+                    // Cache the values in the DOM row so we don't fetch again next time
+                    row.setAttribute('data-token', data.snap_token);
+                    row.setAttribute('data-url', data.snap_url);
+
+                    paymentLinkInput.value = data.snap_url;
+                    qrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(data.snap_url)}`;
+                    setWAUrl(data.snap_url);
+                    
+                    waButton.style.opacity = "1";
+                    waButton.style.pointerEvents = "auto";
+
+                    if (status === 'Pending') {
+                        payDirectButton.style.display = 'inline-flex';
+                        payDirectButton.onclick = function() {
+                            closeShareModal();
+                            payNow(data.snap_token, orderId);
+                        };
+                    }
+                } else {
+                    paymentLinkInput.value = "Error: Gagal generate link";
+                    alert('Gagal generate token Midtrans: ' + (data.message || 'unknown error'));
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                paymentLinkInput.value = "Error: " + err.message;
+                alert('Terjadi kesalahan: ' + err.message);
+            });
+        }
+    }
+
+    function closeShareModal() {
+        document.getElementById('shareModal').style.display = 'none';
+    }
+
+    function copyPaymentLink() {
+        const linkInput = document.getElementById('sharePaymentLink');
+        if (linkInput) {
+            linkInput.select();
+            document.execCommand('copy');
+            alert('Tautan pembayaran berhasil disalin ke clipboard!');
+        }
+    }
+
+    // Refresh Payment Status from Midtrans API
+    function refreshStatus(btn, orderId) {
+        const icon = btn.querySelector('i');
+        if (icon) icon.classList.add('fa-spin');
+        btn.disabled = true;
+
+        fetch('/payments/refresh?order_id=' + encodeURIComponent(orderId), {
+            method: 'POST'
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Gagal memperbarui status pembayaran.');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                const row = btn.closest('tr');
+                if (row) {
+                    // Update data status attribute
+                    row.setAttribute('data-status', data.status);
+                    
+                    // Update status badge HTML
+                    const statusTd = row.cells[4]; // 5th column (0-indexed: 4)
+                    if (statusTd) {
+                        if (data.status === 'Success') {
+                            statusTd.innerHTML = '<span class="badge" style="background: rgba(74, 222, 128, 0.15); color: #4ade80; border: 1px solid rgba(74, 222, 128, 0.25);">Success</span>';
+                            // Hide the refresh button since it is now success
+                            btn.style.display = 'none';
+                        } else if (data.status === 'Pending') {
+                            statusTd.innerHTML = '<span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.25);">Pending</span>';
+                        } else if (data.status === 'Expired') {
+                            statusTd.innerHTML = '<span class="badge" style="background: rgba(156, 163, 175, 0.15); color: #9ca3af; border: 1px solid rgba(156, 163, 175, 0.25);">Expired</span>';
+                        } else {
+                            statusTd.innerHTML = `<span class="badge" style="background: rgba(248, 113, 113, 0.15); color: #f87171; border: 1px solid rgba(248, 113, 113, 0.25);">${data.status}</span>`;
+                        }
+                    }
+
+                    // Update payment method column (6th column, 0-indexed: 5)
+                    const methodTd = row.cells[5];
+                    if (methodTd && data.payment_type) {
+                        methodTd.innerHTML = `<span style="font-size: 13px; font-weight: 500; color: var(--text-secondary);"><i class="fa-solid fa-money-bill-transfer" style="margin-right: 4px; color: var(--text-muted);"></i>${data.payment_type}</span>`;
+                    }
+                }
+                
+                // Recalculate top stats counters
+                calculateStats();
+                
+                if (data.message) {
+                    alert(`${orderId}: ${data.message}`);
+                } else {
+                    alert(`${orderId} status updated to: ${data.status}`);
+                }
+            } else {
+                alert('Gagal update status: ' + (data.message || 'unknown error'));
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert('Error: ' + err.message);
+        })
+        .finally(() => {
+            if (icon) icon.classList.remove('fa-spin');
+            btn.disabled = false;
+        });
+    }
+
+    function confirmDeletePayment(orderId) {
+        if (confirm("Apakah Anda yakin ingin menghapus tagihan " + orderId + "?")) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/payments/delete';
+            
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'order_id';
+            input.value = orderId;
+            
+            form.appendChild(input);
+            document.body.appendChild(form);
+            form.submit();
+        }
+    }
+
+
+    // Filter Logic
+    function applyFilters() {
+        const searchVal = document.getElementById('searchFilter')?.value.toLowerCase().trim() || "";
+        const statusVal = document.getElementById('statusFilter')?.value || "";
+        
+        const rows = document.querySelectorAll('#paymentsTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const orderId = (row.getAttribute('data-order-id') || "").toLowerCase();
+            const clientName = (row.getAttribute('data-client-name') || "").toLowerCase();
+            const status = row.getAttribute('data-status') || "";
+            
+            let match = true;
+            
+            if (searchVal !== "") {
+                if (!orderId.includes(searchVal) && !clientName.includes(searchVal)) {
+                    match = false;
+                }
+            }
+            
+            if (statusVal !== "" && status !== statusVal) {
+                match = false;
+            }
+            
+            if (match) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        const emptyState = document.getElementById('tableEmptyState');
+        const tableContainer = document.getElementById('tableResponsiveContainer');
+        
+        if (visibleCount === 0) {
+            if (emptyState) emptyState.style.display = 'flex';
+            if (tableContainer) tableContainer.style.display = 'none';
+        } else {
+            if (emptyState) emptyState.style.display = 'none';
+            if (tableContainer) tableContainer.style.display = 'block';
+        }
+    }
+
+    function resetFilters() {
+        const searchInput = document.getElementById('searchFilter');
+        const statusSelect = document.getElementById('statusFilter');
+        
+        if (searchInput) searchInput.value = "";
+        if (statusSelect) statusSelect.value = "";
+        
+        applyFilters();
+    }
+
+    // Count stats dynamically from the DOM
+    function calculateStats() {
+        const rows = document.querySelectorAll('#paymentsTable tbody tr');
+        let success = 0;
+        let pending = 0;
+        let failed = 0;
+        
+        rows.forEach(row => {
+            const status = row.getAttribute('data-status');
+            if (status === "Success") {
+                success++;
+            } else if (status === "Pending") {
+                pending++;
+            } else if (status === "Expired" || status === "Failed") {
+                failed++;
+            }
+        });
+        
+        const statSuccess = document.getElementById('statSuccess');
+        const statPending = document.getElementById('statPending');
+        const statFailed = document.getElementById('statFailed');
+        
+        if (statSuccess) statSuccess.textContent = success;
+        if (statPending) statPending.textContent = pending;
+        if (statFailed) statFailed.textContent = failed;
+    }
+
+    // Trigger Midtrans Snap Popup
+    function payNow(token, orderID) {
+        if (!token) {
+            alert('Kesalahan: Snap token tidak ditemukan.');
+            return;
+        }
+
+        snap.pay(token, {
+            onSuccess: function(result) {
+                console.log('Payment success:', result);
+                window.location.href = '/payments?success=Pembayaran+untuk+invoice+' + orderID + '+berhasil+dilakukan';
+            },
+            onPending: function(result) {
+                console.log('Payment pending:', result);
+                window.location.href = '/payments?success=Menunggu+penyelesaian+pembayaran';
+            },
+            onError: function(result) {
+                console.log('Payment error:', result);
+                window.location.href = '/payments?error=Pembayaran+gagal+atau+ditolak';
+            },
+            onClose: function() {
+                console.log('Payment popup closed without finishing');
+            }
+        });
+    }
+
+    // Initialize scripts on load
+    $(document).ready(function() {
+        // Initialize default sync month to current month
+        const now = new Date();
+        const monthStr = String(now.getMonth() + 1).padStart(2, '0');
+        const yearStr = now.getFullYear();
+        const syncMonthInput = document.getElementById('syncMonthInput');
+        if (syncMonthInput) {
+            syncMonthInput.value = `${yearStr}-${monthStr}`;
+        }
+
+        // Initialize Select2 search dropdown inside modal
+        $('#paymentClientID').select2({
+            placeholder: "-- Pilih Klien / Perusahaan --",
+            allowClear: true,
+            width: '100%',
+            dropdownParent: $('#paymentModal')
+        });
+        
+        formatRupiah();
+        calculateStats();
+        
+        // Dismiss modals on background click
+        window.addEventListener('click', function(event) {
+            const createModal = document.getElementById('paymentModal');
+            const shareModal = document.getElementById('shareModal');
+            if (event.target === createModal) {
+                closeCreatePaymentModal();
+            }
+            if (event.target === shareModal) {
+                closeShareModal();
+            }
+        });
+    });
+</script>
+{{end}}
